@@ -1,0 +1,114 @@
+{
+  "version": "1.0",
+  "huntName": "Bibliotheek Speurtocht",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Waar vind je boeken over ridders?",
+      "hint": "Kijk bij de J-boeken bij de afdeling Geschiedenis.",
+      "options": ["Bij de kookboeken", "Bij de geschiedenisboeken", "Bij de strips", "Bij de tijdschriften"],
+      "correctIndex": 1
+    },
+    {
+      "id": "q2",
+      "type": "match",
+      "prompt": "Verbind de schrijver met het boek.",
+      "hint": "Annie M.G. Schmidt schreef over Jip en Janneke.",
+      "pairs": [
+        { "left": "Annie M.G. Schmidt", "right": "Jip en Janneke" },
+        { "left": "Paul van Loon", "right": "Dolfje Weerwolfje" },
+        { "left": "Roald Dahl", "right": "Matilda" },
+        { "left": "Carry Slee", "right": "Spijt!" }
+      ]
+    },
+    {
+      "id": "q3",
+      "type": "order",
+      "prompt": "Zet de boeken op volgorde van dikte (dun naar dik).",
+      "hint": "Een prentenboek is vaak dunner dan een leesboek.",
+      "items": ["Prentenboek", "Tijdschrift", "Leesboek groep 4", "Harry Potter deel 7"],
+      "correctOrder": [1, 0, 2, 3] 
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Wat doe je als je een boek wilt lenen?",
+      "hint": "Je hebt je pasje nodig.",
+      "options": ["Je loopt gewoon naar buiten", "Je scant het bij de zelfservice", "Je geeft het aan een andere klant", "Je laat het bij de WC liggen"],
+      "correctIndex": 1
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Hoe heet de code op de rug van een boek?",
+      "hint": "Het heet een P...iso.",
+      "options": ["Streepjescode", "ISBN", "Plaatsingscode", "QR code"],
+      "correctIndex": 2
+    },
+    {
+      "id": "q6",
+      "type": "match",
+      "prompt": "Welk genre hoort bij welk icoon?",
+      "hint": "Een vergrootglas hoort bij speurders.",
+      "pairs": [
+        { "left": "Spannend", "right": "Spookje" },
+        { "left": "Dieren", "right": "Pootafdruk" },
+        { "left": "Sport", "right": "Voetbal" },
+        { "left": "Liefde", "right": "Hartje" }
+      ]
+    },
+    {
+      "id": "q7",
+      "type": "order",
+      "prompt": "Zet de namen op alfabetische volgorde.",
+      "hint": "Het alfabet begint met A, B, C...",
+      "items": ["Zebra", "Aap", "Muis", "Kat"],
+      "correctOrder": [1, 3, 2, 0]
+    },
+    {
+      "id": "q8",
+      "type": "mcq",
+      "prompt": "Mag je eten in de bibliotheek?",
+      "hint": "Kruimels trekken muizen aan!",
+      "options": ["Ja, patat mag", "Nee, liever niet bij de boeken", "Alleen soep", "Ja, als je deelt"],
+      "correctIndex": 1
+    },
+    {
+      "id": "q9",
+      "type": "mcq",
+      "prompt": "Wat is een e-book?",
+      "hint": "De 'e' staat voor elektronisch.",
+      "options": ["Een boek over eten", "Een boek op een scherm", "Een heel oud boek", "Een boek met plaatjes"],
+      "correctIndex": 1
+    },
+    {
+      "id": "q10",
+      "type": "match",
+      "prompt": "Zoek de juiste kleur bij de categorie (fictief voorbeeld).",
+      "hint": "Spannende boeken hebben vaak een rode sticker.",
+      "pairs": [
+        { "left": "Spanning", "right": "Rood" },
+        { "left": "Humor", "right": "Geel" },
+        { "left": "Informatief", "right": "Blauw" },
+        { "left": "Strip", "right": "Groen" }
+      ]
+    },
+    {
+      "id": "q11",
+      "type": "order",
+      "prompt": "Zet de stappen van lenen in de goede volgorde.",
+      "hint": "Eerst zoeken, dan lenen.",
+      "items": ["Boek mee naar huis", "Boek uitkiezen", "Scannen", "Naar de bieb gaan"],
+      "correctOrder": [3, 1, 2, 0]
+    },
+    {
+      "id": "q12",
+      "type": "mcq",
+      "prompt": "Waar staan de A-boeken?",
+      "hint": "A is voor kinderen die net lezen.",
+      "options": ["Bij de volwassenen", "Bij de kleuters", "Bij de jeugdafdeling (tot 9 jaar)", "In de kelder"],
+      "correctIndex": 2
+    }
+  ]
+}
