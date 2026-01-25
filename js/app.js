@@ -599,13 +599,17 @@ async function adminLoop() {
             State.admin.teams = s.teams;
         }
 
-        // Render Dashboard
-        // We want to preserve focus if typing words.
-        // Simple heuristic: Only re-render if not editing.
-        const grid = document.getElementById('words-grid');
-        const isEditing = grid && grid.contains(document.activeElement);
+        // Render or Update Dashboard
+        if (document.getElementById('admin-screen')) {
+            // Update existing view to prevent flash
+            Views.adminDashboardUpdate(s, State.admin.teams || []);
 
-        if (!isEditing) {
+            // Ensure event handlers for main buttons are attached if they were lost? 
+            // No, because we only updated innerHTML of team-list and inputs. 
+            // Buttons in header and words-panel (except "save") are static.
+            // We need to re-bind if we re-rendered headers. We didn't.
+        } else {
+            // Initial Render
             const view = Views.adminDashboard(s, State.admin.teams || []);
             render(view);
 
@@ -743,7 +747,6 @@ async function adminLoop() {
                     }
                 };
             }
-
         }
 
         // Update Timer & Status (Always, even if editing)

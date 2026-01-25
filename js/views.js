@@ -250,6 +250,7 @@ export const Views = {
     adminDashboard(session, teams) {
         const div = document.createElement('div');
         div.className = 'screen';
+        div.id = 'admin-screen';
         div.style.display = 'block';
 
         // Header
@@ -286,39 +287,7 @@ export const Views = {
         // Render teams list
         const teamList = teamsPanel.querySelector('#team-list');
         teams.forEach(t => {
-            const lastSeen = new Date(t.lastSeen || 0);
-            const isOnline = (new Date() - lastSeen) < 20000;
-
-            let avatar = '';
-            let name = t.teamName;
-            if (t.animalId) {
-                const anim = ANIMALS.find(a => a.id == t.animalId);
-                if (anim) {
-                    avatar = `<span style="font-size: 1.5rem; margin-right: 5px;">${getAnimalIcon(anim.name)}</span>`;
-                    name = anim.teamName;
-                }
-            }
-
-            const pct = Math.min(100, Math.round((t.progress / 12) * 100));
-            const row = document.createElement('div');
-            row.className = 'team-row';
-            row.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px; min-width: 200px;">
-                    ${avatar}
-                    <strong>${name}</strong>
-                </div>
-                <div style="flex: 1; margin: 0 20px;">
-                    <div style="height: 10px; background: #E5E7EB; border-radius: 5px; overflow: hidden;">
-                        <div style="height: 100%; width: ${pct}%; background: ${t.teamColor || 'var(--primary)'}; transition: width 0.5s;"></div>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <small>${t.progress}/12</small>
-                    <span title="Hints">💡 ${t.hintsUsed}</span>
-                    <div class="status-indicator ${isOnline ? 'status-online' : ''}" title="${isOnline ? 'Online' : 'Offline'}"></div>
-                </div>
-            `;
-            teamList.appendChild(row);
+            teamList.appendChild(createTeamRow(t));
         });
 
         const wordsPanel = document.createElement('div');
@@ -343,25 +312,23 @@ export const Views = {
             inp.value = val;
             inp.placeholder = `Woord ${i + 1}`;
 
-            // Validation
-            let borderColor = '#D1D5DB';
-            let bgColor = 'white';
-
-            const target = Views.SOLUTION_WORDS[i]; // Access from Views object or local if moved
-            // Clean strings for compare (insensitive, alphanumeric only)
+            // Visual Validation Logic
+            const target = Views.SOLUTION_WORDS[i];
             const cleanVal = val.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
             const cleanTarget = target.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-
             const isMatch = cleanVal === cleanTarget;
             const hasValue = cleanVal.length > 0;
+
+            let borderColor = '#D1D5DB';
+            let bgColor = 'white';
 
             if (hasValue) {
                 if (isMatch) {
                     borderColor = 'var(--success)';
-                    bgColor = '#DCFCE7'; // light green
+                    bgColor = '#DCFCE7';
                 } else {
                     borderColor = 'var(--danger)';
-                    bgColor = '#FEE2E2'; // light red
+                    bgColor = '#FEE2E2';
                     allCorrect = false;
                 }
             } else {
@@ -398,23 +365,91 @@ export const Views = {
         return div;
     },
 
+    adminDashboardUpdate(session, teams) {
+        const container = document.getElementById('admin-screen');
+        if (!container) return;
+
+        // 1. Update Team List
+        const teamList = container.querySelector('#team-list');
+        if (teamList) {
+            // Re-build list
+            teamList.innerHTML = '';
+            teams.forEach(t => {
+                teamList.appendChild(createTeamRow(t));
+            });
+        }
+
+        // 2. Update Words (if not editing)
+        const grid = container.querySelector('#words-grid');
+        const isEditing = grid && grid.contains(document.activeElement);
+        if (!isEditing && grid) {
+            const inputs = grid.querySelectorAll('.word-input');
+            const currentWords = session.words || [];
+
+            inputs.forEach((inp, i) => {
+                const val = currentWords[i] || '';
+                // Only update if changed
+                if (inp.value !== val) {
+                    inp.value = val;
+                    // Re-apply validation styles manually (duplicated logic, but safe)
+                    const target = Views.SOLUTION_WORDS[i];
+                    const cleanVal = val.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                    const cleanTarget = target.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                    const isMatch = cleanVal === cleanTarget;
+
+                    if (val.length > 0) {
+                        if (isMatch) {
+                            inp.style.borderColor = 'var(--success)';
+                            inp.style.background = '#DCFCE7';
+                        } else {
+                            inp.style.borderColor = 'var(--danger)';
+                            inp.style.background = '#FEE2E2';
+                        }
+                    } else {
+                        inp.style.borderColor = '#D1D5DB';
+                        inp.style.background = 'white';
+                    }
+                }
+            });
+
+            // Update Save Button
+            // We need to check all values (from inputs or session)
+            let allCorrect = true;
+            for (let i = 0; i < 20; i++) {
+                const val = currentWords[i] || '';
+                const target = Views.SOLUTION_WORDS[i];
+                const cleanVal = val.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                const cleanTarget = target.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+                if (cleanVal !== cleanTarget) allCorrect = false;
+            }
+
+            const btnSave = container.querySelector('#btn-save-words');
+            if (btnSave) {
+                if (allCorrect) {
+                    btnSave.textContent = "🔓 Open de kluis";
+                    btnSave.disabled = false;
+                    btnSave.className = "btn btn-success btn-large";
+                    btnSave.style.background = "var(--success)";
+                    btnSave.style.cursor = "pointer";
+                    btnSave.dataset.action = "openVault";
+                } else {
+                    btnSave.textContent = "🔒 Open de kluis";
+                    btnSave.className = "btn";
+                    btnSave.disabled = true;
+                    btnSave.style.background = "#ccc";
+                    btnSave.style.cursor = "not-allowed";
+                    delete btnSave.dataset.action;
+                }
+            }
+        }
+    },
+
     openVaultAnimation() {
         const div = document.createElement('div');
         div.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: black; display: flex; align-items: center; justify-content: center; overflow: hidden;';
 
         // Image
         const img = document.createElement('img');
-        img.src = 'content/vault_open_fantasy.png'; // Will need to ensure this path is correct or injected
-        // Actually better to use an absolute path or artifact URL? 
-        // Just assuming content/vault_open_fantasy.png will be there.
-        // Wait, I should probably use the artifact path if I can't write to content directly easily?
-        // Let's assume the user will place it or I uploaded it.
-        // I will use a placeholder URI or check where I saved it. 
-        // I saved it to artifacts. I should probably copy it to the workspace or refer to it.
-        // For now, let's assume I write it to 'assets/vault_fantasy.png'.
-
-        // Let's use Base64 if needed, but 'assets/vault_fantasy.png' is cleaner.
-        // I will write the file in next step.
         img.src = 'assets/vault_fantasy.png';
         img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 3s ease-in;';
 
@@ -471,6 +506,42 @@ export const Views = {
         });
     }
 };
+
+function createTeamRow(t) {
+    const lastSeen = new Date(t.lastSeen || 0);
+    const isOnline = (new Date() - lastSeen) < 20000;
+
+    let avatar = '';
+    let name = t.teamName;
+    if (t.animalId) {
+        const anim = ANIMALS.find(a => a.id == t.animalId);
+        if (anim) {
+            avatar = `<span style="font-size: 1.5rem; margin-right: 5px;">${getAnimalIcon(anim.name)}</span>`;
+            name = anim.teamName;
+        }
+    }
+
+    const pct = Math.min(100, Math.round((t.progress / 12) * 100));
+    const row = document.createElement('div');
+    row.className = 'team-row';
+    row.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 200px;">
+            ${avatar}
+            <strong>${name}</strong>
+        </div>
+        <div style="flex: 1; margin: 0 20px;">
+            <div style="height: 10px; background: #E5E7EB; border-radius: 5px; overflow: hidden;">
+                <div style="height: 100%; width: ${pct}%; background: ${t.teamColor || 'var(--primary)'}; transition: width 0.5s;"></div>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <small>${t.progress}/12</small>
+            <span title="Hints">💡 ${t.hintsUsed}</span>
+            <div class="status-indicator ${isOnline ? 'status-online' : ''}" title="${isOnline ? 'Online' : 'Offline'}"></div>
+        </div>
+    `;
+    return row;
+}
 
 function getAnimalIcon(name) {
     const icons = {
