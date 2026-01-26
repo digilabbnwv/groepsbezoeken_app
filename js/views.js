@@ -12,12 +12,13 @@ export const Views = {
         const div = document.createElement('div');
         div.className = 'screen';
         div.innerHTML = `
+            <img src="assets/Logo-Bibliotheek-Noordwest-Veluwe-vierkant.png" class="bg-logo">
             <div class="card">
-                <h1>Welkom bij de Speurtocht</h1>
-                <p>Klaar voor het avontuur?</p>
-                <button class="btn btn-primary btn-large" onclick="location.hash='#player'">Start als Speler</button>
+                <h1>Welkom in de bibliotheek</h1>
+                <p>Zin in de speurtocht en klaar voor het avontuur?</p><br />
+                <button class="btn btn-primary btn-large" onclick="location.hash='#player'">Start als speler</button>
                 <div style="margin-top: 2rem;">
-                    <a href="#admin" style="color: #ccc; font-size: 0.8rem; text-decoration: none;">Beheerder Login</a>
+                    <a href="#admin" style="color: #ccc; font-size: 0.8rem; text-decoration: none;">» Start als beheerder</a>
                 </div>
             </div>
         `;
@@ -28,11 +29,10 @@ export const Views = {
         const div = document.createElement('div');
         div.className = 'screen';
         div.innerHTML = `
+            <img src="assets/Logo-Bibliotheek-Noordwest-Veluwe-vierkant.png" class="bg-logo">
             <div class="card">
                 <h1>Doe mee!</h1>
-                <input type="text" id="session-code" placeholder="Sessiecode (6 tekens)" 
-                    style="font-size: 2rem; padding: 10px; width: 200px; text-transform: uppercase; text-align: center; margin: 20px 0; border: 2px solid #ddd; border-radius: 8px;">
-                <br>
+                <input type="text" id="session-code" class="modern-input code-input" placeholder="CODE" maxlength="7" autocomplete="off"><br />
                 <button id="btn-join" class="btn btn-primary btn-large">Start</button>
             </div>
         `;
@@ -49,6 +49,7 @@ export const Views = {
         const div = document.createElement('div');
         div.className = 'screen';
         div.innerHTML = `
+            <img src="assets/Logo-Bibliotheek-Noordwest-Veluwe-vierkant.png" class="bg-logo">
             <div class="card">
                 <h1>Welkom terug!</h1>
                 <p>Wil je doorgaan als <strong>${teamName}</strong>?</p>
@@ -66,6 +67,12 @@ export const Views = {
     playerAvatarSelection(takenIds, onSelect, selectedId) {
         const div = document.createElement('div');
         div.className = 'screen';
+
+        // Background Logo
+        const logo = document.createElement('img');
+        logo.src = 'assets/Logo-Bibliotheek-Noordwest-Veluwe-vierkant.png';
+        logo.className = 'bg-logo';
+        div.appendChild(logo);
 
         // Default to empty array if undefined
         const takenList = takenIds || [];
@@ -87,11 +94,15 @@ export const Views = {
             `;
         });
 
-        div.innerHTML = `
+        // Main content
+        const content = document.createElement('div');
+        content.style.cssText = 'display:flex; flex-direction:column; align-items:center; z-index:1; width:100%;';
+        content.innerHTML = `
             <h2 style="margin-bottom: 20px;">Kies je team</h2>
             <div class="animal-grid">${gridHtml}</div>
             <button id="btn-confirm" class="btn btn-primary btn-large" style="margin-top: 20px;" ${selectedId ? '' : 'disabled'}>Bevestigen</button>
         `;
+        div.appendChild(content);
 
         div.querySelectorAll('.animal-card').forEach(el => {
             el.onclick = () => {
@@ -180,7 +191,8 @@ export const Views = {
         }
 
         div.innerHTML = `
-            <div style="display: flex; flex-direction: column; width: 100%; height: 100%;">
+            <img src="assets/Logo-Bibliotheek-Noordwest-Veluwe-vierkant.png" class="bg-logo">
+            <div style="display: flex; flex-direction: column; width: 100%; height: 100%; z-index:1;">
                 ${headerHtml}
                 <div class="question-area">
                     <div class="question-container">
@@ -210,8 +222,21 @@ export const Views = {
     playerFinished(teamName, words, timePenalty) {
         const div = document.createElement('div');
         div.className = 'screen';
+
+        // Generate confetti HTML
+        let confettiHtml = '';
+        for (let i = 0; i < 150; i++) {
+            const left = Math.random() * 100;
+            const delay = Math.random() * 5;
+            confettiHtml += `<div class="confetti" style="left: ${left}%; animation-delay: ${delay}s"></div>`;
+        }
+
         div.innerHTML = `
-            <div class="card">
+            <img src="assets/Logo-Bibliotheek-Noordwest-Veluwe-vierkant.png" class="bg-logo">
+            <div class="confetti-container">
+                ${confettiHtml}
+            </div>
+            <div class="card" style="z-index: 40;">
                 <h1>Gefeliciteerd, ${teamName}!</h1>
                 <p>Jullie hebben alle vragen opgelost.</p>
                 
@@ -220,6 +245,10 @@ export const Views = {
                     <div style="font-size: 2rem; font-weight: bold; color: var(--primary); margin-top: 10px;">
                         ${words[0]} &nbsp;&nbsp; ${words[1]}
                     </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <img src="assets/dancing-office.gif" alt="Feest!" style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 </div>
                 
                 <p>Meld je bij de leerkracht!</p>
@@ -233,16 +262,35 @@ export const Views = {
         const div = document.createElement('div');
         div.className = 'screen';
         div.innerHTML = `
-            <div class="card">
+            <img src="assets/Logo-Bibliotheek-Noordwest-Veluwe-vierkant.png" class="bg-logo">
+            <div class="card" style="z-index: 1;">
                 <h1>Groepsbezoek Bibliotheek</h1>
-                <input type="text" id="session-name" placeholder="Naam (bv. Groep 6B)" 
-                    style="font-size: 1.5rem; padding: 10px; width: 100%; margin: 20px 0;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="session-name" class="modern-input" placeholder="Naam (bv. Groep 6B)" style="flex: 2;">
+                    <input type="password" id="session-pin" class="modern-input" placeholder="Vestigingscode" maxlength="4" inputmode="numeric" style="flex: 1; text-align: center;">
+                </div>
                 <button id="btn-create" class="btn btn-primary btn-large">Start met deze groep</button>
             </div>
         `;
+
+        const pinInput = div.querySelector('#session-pin');
+        // Enforce numbers only
+        pinInput.oninput = () => pinInput.value = pinInput.value.replace(/[^0-9]/g, '');
+
         div.querySelector('#btn-create').onclick = () => {
-            const name = div.querySelector('#session-name').value;
-            if (name) onCreate(name);
+            const name = div.querySelector('#session-name').value.trim();
+            const pin = pinInput.value;
+            const validPins = ['7300', '6801', '6800', '4500', '3800'];
+
+            if (!name) {
+                alert("Vul een naam in.");
+                return;
+            }
+            if (!validPins.includes(pin)) {
+                alert("Ongeldige PIN code. Gebruik vestigingscode.");
+                return;
+            }
+            onCreate(name);
         };
         return div;
     },
@@ -263,7 +311,7 @@ export const Views = {
         header.innerHTML = `
             <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <h2 style="margin: 0; font-size: 2rem;">${session.sessionName}</h2>
-                <div style="font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; margin-top: 5px;">CODE: ${session.sessionCode} (PIN: ${session.sessionPin})</div>
+                <div style="font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; margin-top: 5px;">CODE: ${session.sessionCode}</div>
             </div>
              <div style="margin-top: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
                  <button id="btn-purge" class="btn" style="background: #fee; color: red; font-size: 0.8rem;">⚠ Wis Sessie</button>
@@ -286,7 +334,9 @@ export const Views = {
 
         // Render teams list
         const teamList = teamsPanel.querySelector('#team-list');
-        teams.forEach(t => {
+        // Sort teams by progress descending (Leaderboard)
+        const sortedTeams = [...teams].sort((a, b) => (b.progress || 0) - (a.progress || 0));
+        sortedTeams.forEach(t => {
             teamList.appendChild(createTeamRow(t));
         });
 
@@ -372,10 +422,43 @@ export const Views = {
         // 1. Update Team List
         const teamList = container.querySelector('#team-list');
         if (teamList) {
+            // FLIP Animation: Capture Old Positions
+            const positions = new Map();
+            teamList.querySelectorAll('.team-row').forEach(r => {
+                if (r.dataset.teamId) positions.set(r.dataset.teamId, r.getBoundingClientRect().top);
+            });
+
             // Re-build list
             teamList.innerHTML = '';
-            teams.forEach(t => {
+            // Sort teams by progress descending (Leaderboard)
+            const sortedTeams = [...teams].sort((a, b) => (b.progress || 0) - (a.progress || 0));
+            sortedTeams.forEach(t => {
                 teamList.appendChild(createTeamRow(t));
+            });
+
+            // FLIP Animation: Invert & Play
+            requestAnimationFrame(() => {
+                teamList.querySelectorAll('.team-row').forEach(r => {
+                    const oldTop = positions.get(r.dataset.teamId);
+                    if (oldTop !== undefined) {
+                        const newTop = r.getBoundingClientRect().top;
+                        const dy = oldTop - newTop;
+                        if (dy !== 0) {
+                            r.style.transform = `translateY(${dy}px)`;
+                            r.style.transition = 'none';
+                            r.style.zIndex = '10'; // Ensure moving items are on top
+
+                            requestAnimationFrame(() => {
+                                r.style.transition = 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                                r.style.transform = '';
+                                setTimeout(() => { r.style.zIndex = ''; }, 500);
+                            });
+                        }
+                    } else {
+                        // New items fade in
+                        r.style.animation = 'fadeIn 0.5s';
+                    }
+                });
             });
         }
 
@@ -524,6 +607,7 @@ function createTeamRow(t) {
     const pct = Math.min(100, Math.round((t.progress / 12) * 100));
     const row = document.createElement('div');
     row.className = 'team-row';
+    row.dataset.teamId = t.teamId;
     row.innerHTML = `
         <div style="display: flex; align-items: center; gap: 10px; min-width: 200px;">
             ${avatar}

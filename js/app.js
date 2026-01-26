@@ -551,7 +551,8 @@ async function showFinished() {
     // Get words from p.info (Should be in join response)
     // Get words from p.info (Should be in join response)
     const animId = (p.info && p.info.animalId) ? parseInt(p.info.animalId) : 1;
-    const idx1 = (animId - 1) * 2 + 1;
+    // Wrap around after 10 teams (20 words)
+    const idx1 = ((animId - 1) * 2) % 20 + 1;
     const idx2 = idx1 + 1;
 
     // Format: "1. Woord"
