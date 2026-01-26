@@ -1,0 +1,166 @@
+# API Documentation
+
+This document describes the API endpoints required for the Groepsbezoeken App. All endpoints are expected to be configured in `js/config.js`.
+
+**Authentication:**
+Most endpoints require a `secret` field in the JSON body, which matches the admin's secret key.
+
+## Endpoints
+
+### 1. Create Session
+Initializes a new game session.
+
+*   **Config Key:** `createSession`
+*   **Method:** `POST`
+*   **Request Body:**
+    ```json
+    {
+      "secret": "YOUR_ADMIN_SECRET",
+      "sessionName": "Name of the session"
+    }
+    ```
+*   **Response:**
+    Returns the created session object.
+    ```json
+    {
+      "sessionId": "unique-session-id",
+      "sessionName": "Name",
+      "sessionCode": "ABC1234",
+      "sessionPin": "1234",
+      "status": "waiting",
+      "competitionEnabled": false,
+      "startTime": null,
+      "words": ["..."]
+    }
+    ```
+
+### 2. Fetch Session State
+Retrieves the current state of a session. Used for polling by clients.
+
+*   **Config Key:** `fetchSessionState`
+*   **Method:** `GET`
+*   **URL Parameters:**
+    *   `code`: The session code (e.g., `?code=ABC1234`)
+*   **Response:**
+    Returns the session object enriched with teams and server time.
+    ```json
+    {
+      "sessionId": "...",
+      "sessionCode": "...",
+      "status": "running",
+      "teams": [
+        {
+          "teamId": "...",
+          "teamName": "...",
+          "progress": 0,
+          "score": 0
+        }
+      ],
+      "now": "2023-01-01T12:00:00.000Z"
+    }
+    ```
+
+### 3. Join Team
+Allows a player (team) to join a specific session using an animal avatar.
+
+*   **Config Key:** `joinTeam`
+*   **Method:** `POST`
+*   **Request Body:**
+    ```json
+    {
+      "secret": "YOUR_ADMIN_SECRET",
+      "sessionCode": "ABC1234",
+      "animalId": 1
+    }
+    ```
+*   **Response:**
+    Returns the newly created or existing team object.
+    ```json
+    {
+      "teamId": "team-1",
+      "teamToken": "secure-token",
+      "animalId": 1,
+      "word1": "HiddenWord1",
+      "word2": "HiddenWord2"
+    }
+    ```
+
+### 4. Update Team Protocol
+Updates the progress or state of a specific team.
+
+*   **Config Key:** `updateTeam`
+*   **Method:** `POST`
+*   **Request Body:**
+    ```json
+    {
+      "secret": "YOUR_ADMIN_SECRET",
+      "teamId": "team-1",
+      "progress": 50,     // Optional
+      "hintsUsed": 1,     // Optional
+      "teamName": "New Name" // Optional
+    }
+    ```
+*   **Response:**
+    ```json
+    {
+      "ok": true
+    }
+    ```
+
+### 5. Admin Update Session
+Controls the flow of the game (Start, Stop, Pause).
+
+*   **Config Key:** `adminUpdateSession`
+*   **Method:** `POST`
+*   **Request Body:**
+    ```json
+    {
+      "secret": "YOUR_ADMIN_SECRET",
+      "action": "start", // Options: "start", "pause", "resume", "stop", "toggleCompetition"
+      "competitionEnabled": true // Required if action is "toggleCompetition"
+    }
+    ```
+*   **Response:**
+    ```json
+    {
+      "ok": true
+    }
+    ```
+
+### 6. Admin Update Words
+Updates the list of words/solution sentence for the session.
+
+*   **Config Key:** `adminUpdateWords`
+*   **Method:** `POST`
+*   **Request Body:**
+    ```json
+    {
+      "secret": "YOUR_ADMIN_SECRET",
+      "words": ["Word1", "Word2", "Word3", ...]
+    }
+    ```
+*   **Response:**
+    ```json
+    {
+      "ok": true
+    }
+    ```
+
+### 7. Purge Session
+Resets or clears the session data.
+
+*   **Config Key:** `purgeSession`
+*   **Method:** `POST`
+*   **Request Body:**
+    ```json
+    {
+      "secret": "YOUR_ADMIN_SECRET",
+      "sessionId": "..." // Optional/Context dependent
+    }
+    ```
+*   **Response:**
+    ```json
+    {
+      "ok": true
+    }
+    ```
