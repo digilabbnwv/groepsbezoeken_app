@@ -3,7 +3,8 @@
 This document describes the API endpoints required for the Groepsbezoeken App. All endpoints are expected to be configured in `js/config.js`.
 
 **Authentication:**
-Most endpoints require a `secret` field in the JSON body, which matches the admin's secret key.
+All requests (GET and POST) will automatically include a `secret` parameter in the URL query string (e.g., `?secret=YOUR_KEY`). This is used for validation in Power Automate.
+Additionally, POST requests include the `secret` in the JSON body.
 
 ## Endpoints
 
@@ -116,7 +117,7 @@ Controls the flow of the game (Start, Stop, Pause).
     ```json
     {
       "secret": "YOUR_ADMIN_SECRET",
-      "action": "start", // Options: "start", "pause", "resume", "stop", "toggleCompetition"
+      "action": "toggleCompetition", // Options: "toggleCompetition" (Start/Stop removed)
       "competitionEnabled": true // Required if action is "toggleCompetition"
     }
     ```

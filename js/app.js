@@ -40,6 +40,13 @@ window.addEventListener('hashchange', handleRoute);
 window.addEventListener('load', init);
 
 async function init() {
+    // Check for secret in URL
+    const params = new URLSearchParams(window.location.search);
+    const secret = params.get('secret');
+    if (secret) {
+        CONFIG.SECRET = secret;
+    }
+
     // Load Questions
     try {
         const res = await fetch('content/questions.json');
@@ -114,10 +121,7 @@ function startPlayerJoin() {
         // 1. Check if session exists (by fetching state)
         try {
             const session = await API.fetchSessionState(code);
-            if (session.status === 'ended') {
-                alert("Deze sessie is al afgelopen.");
-                return;
-            }
+            // Session is assumed running or waiting. 'ended' is deprecated.
             State.player.sessionCode = code;
             startAvatarSelection(code);
         } catch (e) {
@@ -196,35 +200,14 @@ function enterGameLoop() {
     pollInterval = setInterval(async () => {
         try {
             const s = await API.fetchSessionState(State.player.sessionCode);
-            // Check paused
-            if (s.status === 'paused') {
-                if (!document.getElementById('pause-overlay')) {
-                    const ov = document.createElement('div');
-                    ov.id = 'pause-overlay';
-                    ov.className = 'feedback-overlay show';
-                    ov.innerHTML = '<div>Gepauzeerd</div>';
-                    document.body.appendChild(ov);
-                }
-            } else {
-                const ov = document.getElementById('pause-overlay');
-                if (ov) ov.remove();
-            }
+
+            // Check paused (Deprecated, but ensuring cleanup)
+            // if (s.status === 'paused') { ... } 
+            // Removed.
+
             // Check ended?
 
-            // Competition Sidebar Logic
-            const sb = document.getElementById('comp-sidebar');
-            if (sb) {
-                if (s.competitionEnabled) {
-                    sb.classList.add('visible');
-                    // Store teams
-                    if (s.teams) {
-                        State.player.otherTeams = s.teams;
-                        Views.updateCompetitionSidebar(s.teams, State.player.teamId);
-                    }
-                } else {
-                    sb.classList.remove('visible');
-                }
-            }
+            // Competition Sidebar Logic (Removed)
 
         } catch (e) { }
     }, CONFIG.POLLING_INTERVAL);
@@ -639,8 +622,9 @@ async function adminLoop() {
                         action: action
                     };
 
-                    if (action === 'toggleCompetition') {
-                        payload.competitionEnabled = !s.competitionEnabled;
+                    // Action handling moved directly to API call or removed
+                    if (action === 'openVault') {
+                        // handled in specific button handler usually, but here for generic actions
                     }
 
                     API.adminUpdateSession(payload).then(adminLoop);

@@ -20,6 +20,18 @@ function saveMockDB(db) {
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function fetchWithTimeout(url, options = {}) {
+    // Automatically append 'secret' query parameter if it exists in CONFIG
+    if (CONFIG.SECRET) {
+        try {
+            const urlObj = new URL(url, window.location.origin); // Handle relative URLs
+            urlObj.searchParams.append('secret', CONFIG.SECRET);
+            url = urlObj.toString();
+        } catch (e) {
+            // Fallback for weird URLs if necessary, though new URL() usually handles HTTP/HTTPS
+            console.warn("Could not append secret to URL", url);
+        }
+    }
+
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 8000);
     try {
@@ -47,9 +59,9 @@ export const API = {
                 sessionName: sessionName || "Oefensessie",
                 sessionCode: "ABC1234",
                 sessionPin: "1234",
-                status: "waiting",
+                status: "running",
                 competitionEnabled: false,
-                startTime: null,
+                startTime: new Date().toISOString(),
                 words: Array(20).fill("")
             };
             saveMockDB(db);
@@ -156,18 +168,7 @@ export const API = {
             const db = getMockDB();
             if (!db.session) return { ok: false };
 
-            if (payload.action === 'start') {
-                db.session.status = 'running';
-                if (!db.session.startTime) db.session.startTime = new Date().toISOString();
-            } else if (payload.action === 'pause') {
-                db.session.status = 'paused';
-            } else if (payload.action === 'resume') {
-                db.session.status = 'running';
-            } else if (payload.action === 'stop') {
-                db.session.status = 'ended';
-            } else if (payload.action === 'toggleCompetition') {
-                db.session.competitionEnabled = payload.competitionEnabled;
-            }
+            // toggleCompetition removed
             saveMockDB(db);
             return { ok: true };
         }
