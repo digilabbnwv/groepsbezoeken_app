@@ -43,3 +43,21 @@ Gewoon `index.html` openen in een browser werkt meestal, maar voor modules is ee
 npx --yes serve
 ```
 Of gebruik de Live Server extensie in VS Code.
+
+## Database (Microsoft Lists)
+De applicatie is ontworpen om te werken met Microsoft Lists als backend (via Power Automate).
+
+In de map `database/` vind je twee CSV-bestanden die als template dienen voor het aanmaken van de benodigde lijsten:
+
+1. **Sessions.csv** -> Maak een lijst genaamd `Sessions`
+2. **Teams.csv** -> Maak een lijst genaamd `Teams`
+
+### Instructies voor aanmaken:
+1. Open de CSV bestanden in Excel en sla ze op als Excel Werkmap (.xlsx). Zorg dat de data in een Tabel staat (Insert > Table).
+2. Ga naar Microsoft Lists.
+3. Kies **"Nieuwe lijst"** > **"Vanuit Excel"**.
+4. Upload het zojuist opgeslagen Excel bestand.
+5. Controleer de kolomtypes (zorg dat datums als *Datum en tijd*, nummers als *Getal*, en ja/nee als *Boolean* of *Tekst* worden herkend).
+6. Geef de lijst de naam **Sessions** of **Teams** (overeenkomstig het bestand).
+
+De kolommen in deze lijsten corresponderen met de data die de app verstuurt en ophaalt. Zie `API_DOCUMENTATION.md` voor meer technische details.
