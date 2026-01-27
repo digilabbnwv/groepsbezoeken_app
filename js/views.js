@@ -14,7 +14,7 @@ export const Views = {
         div.innerHTML = `
             <img src="assets/Logo-Bibliotheek-Noordwest-Veluwe-vierkant.png" class="bg-logo">
             <div class="card">
-                <h1>Welkom in de bibliotheek</h1>
+                <h1>Welkom bij de BiebBattle</h1>
                 <p>Zin in de speurtocht en klaar voor het avontuur?</p><br />
                 <button class="btn btn-primary btn-large" onclick="location.hash='#player'">Start als speler</button>
                 <div style="margin-top: 2rem;">
@@ -96,7 +96,8 @@ export const Views = {
 
         // Main content
         const content = document.createElement('div');
-        content.style.cssText = 'display:flex; flex-direction:column; align-items:center; z-index:1; width:100%;';
+        content.className = 'card animate__animated animate__fadeInRight';
+        content.style.cssText = 'z-index: 1; width: 100%; max-width: 800px;';
         content.innerHTML = `
             <h2 style="margin-bottom: 20px;">Kies je team</h2>
             <div class="animal-grid">${gridHtml}</div>
@@ -115,7 +116,7 @@ export const Views = {
         return div;
     },
 
-    playerGame(question, progressText, attempts, maxAttempts, onAnswer, onHint, hintsUsed, timePenalty, teamData) {
+    playerGame(question, progressText, attempts, maxAttempts, onAnswer, onHint, hintsUsed, timePenalty, teamData, animationClass) {
         const div = document.createElement('div');
         div.className = 'player-layout';
 
@@ -196,7 +197,7 @@ export const Views = {
                 ${headerHtml}
                 <div class="question-area">
                     <div class="question-container">
-                        <div class="card" style="max-width: 100%;">
+                        <div class="card animate__animated ${animationClass || ''}" style="max-width: 100%;">
                             <h2 style="margin-bottom: 20px;">${question.prompt}</h2>
                             ${contentHtml}
                             
@@ -303,12 +304,13 @@ export const Views = {
 
         // Header
         const header = document.createElement('div');
-        header.style.cssText = 'padding: 20px; background: white; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);';
+        header.style.cssText = 'padding: 20px; background: white; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-radius: var(--radius-lg);';
 
         const isRunning = session.status === 'running';
         const isPaused = session.status === 'paused';
 
         header.innerHTML = `
+            <img src="assets/Logo-Bibliotheek-Noordwest-Veluwe-vierkant.png" style="height: 100px; width: auto; margin-right: 20px;" alt="Logo" />
             <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <h2 style="margin: 0; font-size: 2rem;">${session.sessionName}</h2>
                 <div style="font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; margin-top: 5px;">CODE: ${session.sessionCode}</div>
@@ -385,13 +387,13 @@ export const Views = {
                 allCorrect = false;
             }
 
-            inp.style.cssText = `padding: 8px 12px; border: 2px solid ${borderColor}; background: ${bgColor}; border-radius: 8px; outline: none; transition: all 0.2s;`;
-
-            inp.onfocus = () => { inp.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.1)'; };
-            inp.onblur = () => { inp.style.boxShadow = 'none'; };
-
             inp.className = 'word-input';
             inp.dataset.idx = i;
+
+            // Apply only dynamic colors inline
+            inp.style.border = `2px solid ${borderColor}`;
+            inp.style.background = bgColor;
+
             wordsGrid.appendChild(inp);
         }
 

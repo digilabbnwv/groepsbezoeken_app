@@ -55,12 +55,18 @@ body.dyslexia-mode {
 
 body {
     font-family: var(--font-body);
-    background: linear-gradient(135deg, var(--color-beige-light) 0%, var(--color-beige) 100%);
+    background: url('../assets/background.png') no-repeat center center fixed;
+    background-size: cover;
     color: var(--text);
     -webkit-font-smoothing: antialiased;
     height: 100vh;
     overflow: hidden;
     line-height: 1.6;
+}
+
+/* Animate.css fast override */
+.animate__animated {
+    animation-duration: 0.5s;
 }
 
 #root {
@@ -116,8 +122,10 @@ body {
 }
 
 .btn-primary {
-    background-color: var(--primary);
+    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
     color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-primary:hover {
@@ -142,6 +150,8 @@ body {
 .btn-large {
     padding: var(--spacing-lg) var(--spacing-xl);
     font-size: 1.25rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 /* Layouts */
@@ -169,14 +179,16 @@ body {
 }
 
 .card {
-    background: var(--surface);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
     max-width: 600px;
     width: 100%;
     text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 /* Modern Inputs */
@@ -345,14 +357,14 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: var(--spacing-md);
     width: 100%;
-    height: 100%;
+    /* height: 100%; removed for flexibility */
 }
 
 .admin-panel {
     background: var(--surface);
     padding: var(--spacing-md);
     border-radius: var(--radius-md);
-    overflow-y: auto;
+    /* overflow-y: auto; removed for flexibility */
     box-shadow: var(--shadow-sm);
 }
 
@@ -576,4 +588,23 @@ body {
         transform: translateY(100vh) rotate(720deg);
         opacity: 0;
     }
+}
+
+.word-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid #D1D5DB;
+    /* Default border */
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.2s;
+    font-family: var(--font-body);
+}
+
+.word-input:focus {
+    /* border-color: var(--primary);  Let JS validation decide border color */
+    box-shadow: 0 0 0 4px var(--color-oranje-light);
+    transform: translateY(-2px);
+    z-index: 5;
+    /* Ensure it pops out */
 }

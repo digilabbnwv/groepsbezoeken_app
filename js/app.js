@@ -232,7 +232,7 @@ function enterGameLoop() {
     showCurrentQuestion();
 }
 
-function showCurrentQuestion() {
+function showCurrentQuestion(animOverride = null) {
     const p = State.player;
     if (p.currentQIndex >= 12) {
         showFinished();
@@ -285,7 +285,8 @@ function showCurrentQuestion() {
         p.currentAttempts,
         2,
         null, null, p.hintsUsedForQ, p.info.timePenaltySeconds,
-        p.info // Pass team data for header
+        p.info, // Pass team data for header
+        animOverride || (p.currentAttempts > 0 ? 'animate__headShake' : 'animate__fadeInRight') // Default Animation Logic
     );
 
     render(view);
@@ -470,7 +471,7 @@ function showCurrentQuestion() {
                     timePenaltySeconds: p.info.timePenaltySeconds
                 });
                 // Re-render to update hint count
-                showCurrentQuestion();
+                showCurrentQuestion('animate__pulse');
             }
         };
     }
@@ -512,7 +513,7 @@ function handleResult(isCorrect, question) {
             setTimeout(() => {
                 feedback.classList.remove('show');
                 // Re-render to show attempts
-                showCurrentQuestion();
+                showCurrentQuestion('animate__pulse');
             }, 1500);
         }
     }
