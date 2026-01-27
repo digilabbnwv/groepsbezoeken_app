@@ -175,7 +175,7 @@ export const Views = {
             }
 
             headerHtml = `
-                <div style="background: white; padding: 10px 20px; border-bottom: 1px solid #E5E7EB; display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <div class="game-header">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 1.5rem;">${icon}</span>
                         <div style="font-weight: bold; font-family: var(--font-heading);">${DisplayName}</div>
