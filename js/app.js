@@ -582,9 +582,10 @@ async function adminLoop() {
             const fetched = await API.fetchSessionState(State.admin.session.sessionCode);
             // Only update if we got a valid session object back (prevents overwriting with empty/error response)
             if (fetched && fetched.sessionCode) {
-                s = fetched;
+                // Merge to preserve local fields (like sessionName) if API omits them
+                s = { ...State.admin.session, ...fetched };
                 State.admin.session = s;
-                if (s.teams) State.admin.teams = s.teams;
+                if (fetched.teams) State.admin.teams = fetched.teams;
             } else {
                 console.warn("Fetched state invalid/empty, using cached state.", fetched);
             }
