@@ -104,7 +104,14 @@ export const API = {
         const url = new URL(CONFIG.ENDPOINTS.fetchSessionState);
         url.searchParams.append('code', sessionCode);
         const res = await fetchWithTimeout(url.toString());
-        return res.json();
+        const data = await res.json();
+
+        // Unwrap nested D1 result if present (common pattern with some CF bindings)
+        if (data && data.teams && data.teams.body && Array.isArray(data.teams.body)) {
+            data.teams = data.teams.body;
+        }
+
+        return data;
     },
 
     async joinTeam(sessionCode, animalId) {
