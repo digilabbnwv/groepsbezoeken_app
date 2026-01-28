@@ -6,14 +6,14 @@ export const CONFIG = {
         fetchSessionState: "", // GET
         joinTeam: "", // POST
         updateTeam: "", // POST
-        adminUpdateSession: "", // POST
+
         adminUpdateWords: "", // POST
         purgeSession: "" // POST
     },
     // Polling interval in ms
     POLLING_INTERVAL: 5000,
     // Timer max seconds (45 min)
-    MAX_TIME_SECONDS: 45 * 60, 
+    MAX_TIME_SECONDS: 45 * 60,
     // Penalty seconds
     PENALTY_SECONDS: 30,
     // Max hints

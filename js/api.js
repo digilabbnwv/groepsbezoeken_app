@@ -58,7 +58,7 @@ export const API = {
                 sessionId: "mock-session-id-" + Date.now(),
                 sessionName: sessionName || "Oefensessie",
                 sessionCode: "ABC1234",
-                sessionCode: "ABC1234",
+
                 startTime: new Date().toISOString(),
                 words: Array(20).fill("")
             };
@@ -167,22 +167,7 @@ export const API = {
         return res.json();
     },
 
-    async adminUpdateSession(payload) {
-        if (!CONFIG.ENDPOINTS.adminUpdateSession) {
-            const db = getMockDB();
-            if (!db.session) return { ok: false };
 
-            // toggleCompetition removed
-            saveMockDB(db);
-            return { ok: true };
-        }
-
-        const res = await fetchWithTimeout(CONFIG.ENDPOINTS.adminUpdateSession, {
-            method: 'POST',
-            body: JSON.stringify({ secret: CONFIG.SECRET, ...payload })
-        });
-        return res.json();
-    },
 
     async adminUpdateWords(payload) {
         if (!CONFIG.ENDPOINTS.adminUpdateWords) {

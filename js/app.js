@@ -608,29 +608,7 @@ async function adminLoop() {
                 };
             }
 
-            // Re-bind actions
-            const bind = (sel, fn) => {
-                const el = view.querySelector(sel);
-                if (el) el.onclick = fn;
-            }
 
-            // Actions
-            view.querySelectorAll('[data-action]').forEach(btn => {
-                btn.onclick = () => {
-                    const action = btn.dataset.action;
-                    let payload = {
-                        sessionCode: s.sessionCode,
-                        action: action
-                    };
-
-                    // Action handling moved directly to API call or removed
-                    if (action === 'openVault') {
-                        // handled in specific button handler usually, but here for generic actions
-                    }
-
-                    API.adminUpdateSession(payload).then(adminLoop);
-                };
-            });
 
             // Live Validation & Autosave
             const inputs = view.querySelectorAll('.word-input');
