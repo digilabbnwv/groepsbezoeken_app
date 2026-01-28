@@ -160,7 +160,19 @@ export const API = {
                 ...extraData
             })
         });
-        return res.json();
+        const data = await res.json();
+
+        // Force update to save extra fields (name/color) that join might ignore
+        if (data.teamId && data.teamToken) {
+            try {
+                await this.updateTeam({
+                    teamId: data.teamId,
+                    teamToken: data.teamToken,
+                    ...extraData
+                });
+            } catch (e) { console.warn("Sync error", e); }
+        }
+        return data;
     },
 
     async updateTeam(payload) {
