@@ -28,8 +28,7 @@ Initializes a new game session.
       "sessionName": "Name",
       "sessionCode": "ABC1234",
       "sessionPin": "1234",
-      "status": "waiting",
-      "competitionEnabled": false,
+      "status": "running",
       "startTime": null,
       "words": ["..."]
     }
@@ -96,6 +95,7 @@ Updates the progress or state of a specific team.
     {
       "secret": "YOUR_ADMIN_SECRET",
       "teamId": "team-1",
+      "teamToken": "secure-token-from-join",
       "progress": 50,     // Optional
       "hintsUsed": 1,     // Optional
       "teamName": "New Name" // Optional
@@ -109,7 +109,7 @@ Updates the progress or state of a specific team.
     ```
 
 ### 5. Admin Update Session
-Controls the flow of the game (Start, Stop, Pause).
+Controls session properties.
 
 *   **Config Key:** `adminUpdateSession`
 *   **Method:** `POST`
@@ -117,8 +117,7 @@ Controls the flow of the game (Start, Stop, Pause).
     ```json
     {
       "secret": "YOUR_ADMIN_SECRET",
-      "action": "toggleCompetition", // Options: "toggleCompetition" (Start/Stop removed)
-      "competitionEnabled": true // Required if action is "toggleCompetition"
+      "action": "customAction" 
     }
     ```
 *   **Response:**
@@ -133,10 +132,13 @@ Updates the list of words/solution sentence for the session.
 
 *   **Config Key:** `adminUpdateWords`
 *   **Method:** `POST`
+*   **URL Parameters:**
+    *   `code`: The session code (e.g., `?code=ABC1234`)
 *   **Request Body:**
     ```json
     {
       "secret": "YOUR_ADMIN_SECRET",
+      "sessionCode": "ABC1234",
       "words": ["Word1", "Word2", "Word3", ...]
     }
     ```

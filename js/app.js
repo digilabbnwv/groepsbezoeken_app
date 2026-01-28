@@ -205,9 +205,7 @@ function enterGameLoop() {
             // if (s.status === 'paused') { ... } 
             // Removed.
 
-            // Check ended?
 
-            // Competition Sidebar Logic (Removed)
 
         } catch (e) { }
     }, CONFIG.POLLING_INTERVAL);
@@ -450,6 +448,7 @@ function showCurrentQuestion(animOverride = null) {
                 // Sync
                 API.updateTeam({
                     teamId: p.teamId,
+                    teamToken: p.teamToken,
                     hintsUsed: p.info.hintsUsed,
                     timePenaltySeconds: p.info.timePenaltySeconds
                 });
@@ -485,6 +484,7 @@ function handleResult(isCorrect, question) {
             State.player.info.timePenaltySeconds += CONFIG.PENALTY_SECONDS;
             API.updateTeam({
                 teamId: State.player.teamId,
+                teamToken: State.player.teamToken,
                 timePenaltySeconds: State.player.info.timePenaltySeconds
             });
             setTimeout(() => {
@@ -511,6 +511,7 @@ function nextQuestion(success) {
     // Sync Progress
     API.updateTeam({
         teamId: p.teamId,
+        teamToken: p.teamToken,
         progress: p.currentQIndex
     });
 
@@ -529,6 +530,7 @@ async function showFinished() {
     // Mark finished
     await API.updateTeam({
         teamId: p.teamId,
+        teamToken: p.teamToken,
         finished: true
     });
 

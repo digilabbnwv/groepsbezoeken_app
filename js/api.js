@@ -60,7 +60,7 @@ export const API = {
                 sessionCode: "ABC1234",
                 sessionPin: "1234",
                 status: "running",
-                competitionEnabled: false,
+                status: "running",
                 startTime: new Date().toISOString(),
                 words: Array(20).fill("")
             };
@@ -145,10 +145,16 @@ export const API = {
     },
 
     async updateTeam(payload) {
+        if (!payload.teamId || !payload.teamToken) {
+            console.error("API.updateTeam: Missing teamId or teamToken", payload);
+            throw new Error("Missing teamId or teamToken");
+        }
+
         if (!CONFIG.ENDPOINTS.updateTeam) {
             const db = getMockDB();
             const t = db.teams[payload.teamId];
             if (t) {
+                // Mock validation (optional): check if t.teamToken === payload.teamToken
                 Object.assign(t, payload);
                 t.lastSeen = new Date().toISOString();
                 saveMockDB(db);
@@ -189,7 +195,15 @@ export const API = {
             }
             return { ok: true };
         }
-        const res = await fetchWithTimeout(CONFIG.ENDPOINTS.adminUpdateWords, {
+        const url = new URL(CONFIG.ENDPOINTS.adminUpdateWords);
+        if (payload.sessionCode) {
+            url.searchParams.append('code', payload.sessionCode);
+        }
+
+        // Note: fetchWithTimeout logic will ALSO append 'secret' to this URL object if configured.
+        // But fetchWithTimeout expects a string or URL. We should pass string.
+
+        const res = await fetchWithTimeout(url.toString(), {
             method: 'POST',
             body: JSON.stringify({ secret: CONFIG.SECRET, ...payload })
         });

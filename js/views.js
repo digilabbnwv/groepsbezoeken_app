@@ -211,9 +211,6 @@ export const Views = {
                     </div>
                 </div>
             </div>
-            <div id="comp-sidebar" class="competition-sidebar">
-                <!-- Injected via updateCompetitionSidebar -->
-            </div>
             <div id="feedback" class="feedback-overlay"></div>
         `;
 
@@ -552,44 +549,7 @@ export const Views = {
         return div;
     },
 
-    updateCompetitionSidebar(teams, myTeamId) {
-        const sb = document.getElementById('comp-sidebar');
-        if (!sb) return;
 
-        sb.innerHTML = '';
-        // Sort me first? Or rank? Just list.
-        teams.forEach(t => {
-            const isMe = t.teamId === myTeamId;
-            const progress = t.progress || 0;
-            const pct = (progress / 12) * 100;
-            const color = t.teamColor || '#ccc';
-
-            // Conic gradient for ring
-            const grad = `conic-gradient(${color} ${pct}%, #E5E7EB ${pct}%)`;
-
-            // Find Animal Icon
-            let icon = '🐾';
-            if (t.animalId) {
-                const anim = ANIMALS.find(a => a.id == t.animalId);
-                if (anim) icon = getAnimalIcon(anim.name);
-            } else {
-                // Fallback attempt
-                icon = getAnimalIcon(t.teamName.split(' ')[1] || t.teamName);
-            }
-
-            const el = document.createElement('div');
-            el.className = `mini-team ${isMe ? 'is-me' : ''}`;
-            el.innerHTML = `
-                <div class="progress-ring" style="background: ${grad};">
-                    <span class="mini-avatar-icon">${icon}</span> 
-                </div> 
-                <div class="mini-name">${t.teamName}</div>
-            `;
-            // Add name tooltip
-            el.title = t.teamName;
-            sb.appendChild(el);
-        });
-    }
 };
 
 function createTeamRow(t) {

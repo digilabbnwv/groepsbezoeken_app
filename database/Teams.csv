@@ -1,2 +1,2 @@
-TeamId;SessionCode;TeamName;AnimalId;Progress;HintsUsed;TimePenaltySeconds;Finished;LastSeen;Word1;Word2
-team-1;ABC1234;Team Panda;1;0;0;0;FALSE;2023-01-01T12:00:00Z;Secret1;Secret2
+TeamId;SessionCode;TeamName;AnimalId;Progress;HintsUsed;TimePenaltySeconds;Finished;LastSeen;Word1;Word2;TeamToken;Title
+team-1;ABC1234;Team Panda;1;0;0;0;FALSE;2023-01-01T12:00:00Z;Secret1;Secret2;token-1;ABC1234
