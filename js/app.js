@@ -580,9 +580,14 @@ async function adminLoop() {
         let s = State.admin.session;
         try {
             const fetched = await API.fetchSessionState(State.admin.session.sessionCode);
-            s = fetched;
-            State.admin.session = s;
-            if (s.teams) State.admin.teams = s.teams;
+            // Only update if we got a valid session object back (prevents overwriting with empty/error response)
+            if (fetched && fetched.sessionCode) {
+                s = fetched;
+                State.admin.session = s;
+                if (s.teams) State.admin.teams = s.teams;
+            } else {
+                console.warn("Fetched state invalid/empty, using cached state.", fetched);
+            }
         } catch (fetchErr) {
             console.warn("Network/API error polling session, showing cached/created state.", fetchErr);
         }
