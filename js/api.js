@@ -34,9 +34,20 @@ async function fetchWithTimeout(url, options = {}) {
 
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 8000);
+
+    // Ensure JSON headers for POST
+    const fetchOptions = { ...options };
+    if (fetchOptions.method === 'POST') {
+        fetchOptions.headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            ...(fetchOptions.headers || {})
+        };
+    }
+
     try {
         const response = await fetch(url, {
-            ...options,
+            ...fetchOptions,
             signal: controller.signal
         });
         clearTimeout(id);
