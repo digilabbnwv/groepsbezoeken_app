@@ -303,9 +303,6 @@ export const Views = {
         const header = document.createElement('div');
         header.style.cssText = 'padding: 20px; background: white; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-radius: var(--radius-lg);';
 
-        const isRunning = session.status === 'running';
-        const isPaused = session.status === 'paused';
-
         header.innerHTML = `
             <img src="assets/Logo-Bibliotheek-Noordwest-Veluwe-vierkant.png" style="height: 100px; width: auto; margin-right: 20px;" alt="Logo" />
             <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">

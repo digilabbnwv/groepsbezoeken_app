@@ -58,9 +58,7 @@ export const API = {
                 sessionId: "mock-session-id-" + Date.now(),
                 sessionName: sessionName || "Oefensessie",
                 sessionCode: "ABC1234",
-                sessionPin: "1234",
-                status: "running",
-                status: "running",
+                sessionCode: "ABC1234",
                 startTime: new Date().toISOString(),
                 words: Array(20).fill("")
             };

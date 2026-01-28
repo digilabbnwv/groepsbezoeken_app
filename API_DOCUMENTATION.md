@@ -27,8 +27,6 @@ Initializes a new game session.
       "sessionId": "unique-session-id",
       "sessionName": "Name",
       "sessionCode": "ABC1234",
-      "sessionPin": "1234",
-      "status": "running",
       "startTime": null,
       "words": ["..."]
     }
@@ -47,7 +45,6 @@ Retrieves the current state of a session. Used for polling by clients.
     {
       "sessionId": "...",
       "sessionCode": "...",
-      "status": "running",
       "teams": [
         {
           "teamId": "...",

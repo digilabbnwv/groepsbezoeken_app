@@ -620,7 +620,6 @@ async function adminLoop() {
                     const action = btn.dataset.action;
                     let payload = {
                         sessionCode: s.sessionCode,
-                        sessionPin: s.sessionPin, // Needed for auth/match
                         action: action
                     };
 
@@ -728,7 +727,7 @@ async function adminLoop() {
                     const input = prompt("Typ de sessiecode na om te wissen (" + s.sessionCode + "):");
                     if (input === s.sessionCode) {
                         try {
-                            await API.purgeSession({ sessionCode: s.sessionCode, sessionPin: s.sessionPin });
+                            await API.purgeSession({ sessionCode: s.sessionCode });
                             alert("Sessie gewist.");
                             location.reload();
                         } catch (e) { alert("Fout: " + e.message); }
@@ -741,7 +740,7 @@ async function adminLoop() {
         const t = document.getElementById('admin-timer');
         const st = document.getElementById('admin-status');
 
-        if (s.status === 'running' && s.startTime) {
+        if (s.startTime) {
             const start = new Date(s.startTime).getTime();
             const now = new Date().getTime(); // slightly out of sync with server 'now' maybe, but good for UI
             const diff = Math.floor((now - start) / 1000);
@@ -758,8 +757,6 @@ async function adminLoop() {
             t.textContent = "00:00";
             t.style.color = 'inherit';
         }
-
-        if (st) st.textContent = s.status;
 
     } catch (e) {
         console.error("Admin poll error", e);
