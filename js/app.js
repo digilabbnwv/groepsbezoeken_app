@@ -577,13 +577,14 @@ function startAdmin() {
 async function adminLoop() {
     if (!State.admin.session) return;
     try {
-        const s = await API.fetchSessionState(State.admin.session.sessionCode);
-        State.admin.session = s; // update status/time
-        // In real API, fetchSessionState might not return teams. 
-        // We'll rely on it returning teams in our impl, or we fetch separate.
-        // Assuming s.teams exists.
-        if (s.teams) {
-            State.admin.teams = s.teams;
+        let s = State.admin.session;
+        try {
+            const fetched = await API.fetchSessionState(State.admin.session.sessionCode);
+            s = fetched;
+            State.admin.session = s;
+            if (s.teams) State.admin.teams = s.teams;
+        } catch (fetchErr) {
+            console.warn("Network/API error polling session, showing cached/created state.", fetchErr);
         }
 
         // Render or Update Dashboard
