@@ -168,6 +168,7 @@ export const API = {
                 await this.updateTeam({
                     teamId: data.teamId,
                     teamToken: data.teamToken,
+                    sessionCode,
                     ...extraData
                 });
             } catch (e) { console.warn("Sync error", e); }

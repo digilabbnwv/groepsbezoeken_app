@@ -464,6 +464,7 @@ function showCurrentQuestion(animOverride = null) {
                 API.updateTeam({
                     teamId: p.teamId,
                     teamToken: p.teamToken,
+                    sessionCode: p.sessionCode,
                     hintsUsed: p.info.hintsUsed,
                     timePenaltySeconds: p.info.timePenaltySeconds
                 });
@@ -500,6 +501,7 @@ function handleResult(isCorrect, question) {
             API.updateTeam({
                 teamId: State.player.teamId,
                 teamToken: State.player.teamToken,
+                sessionCode: State.player.sessionCode,
                 timePenaltySeconds: State.player.info.timePenaltySeconds
             });
             setTimeout(() => {
@@ -527,6 +529,7 @@ function nextQuestion(success) {
     API.updateTeam({
         teamId: p.teamId,
         teamToken: p.teamToken,
+        sessionCode: p.sessionCode,
         progress: p.currentQIndex
     });
 
@@ -546,6 +549,7 @@ async function showFinished() {
     await API.updateTeam({
         teamId: p.teamId,
         teamToken: p.teamToken,
+        sessionCode: p.sessionCode,
         finished: true
     });
 

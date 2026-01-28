@@ -16,5 +16,5 @@ export const CONFIG = {
     MAX_TIME_SECONDS: 45 * 60,
     PENALTY_SECONDS: 30,
     MAX_HINTS: 3,
-    APP_VERSION: "1.0.1"
+    APP_VERSION: "1.0.2"
 };
