@@ -15,5 +15,6 @@ export const CONFIG = {
     POLLING_INTERVAL: 5000,
     MAX_TIME_SECONDS: 45 * 60,
     PENALTY_SECONDS: 30,
-    MAX_HINTS: 3
+    MAX_HINTS: 3,
+    APP_VERSION: "1.0.0"
 };

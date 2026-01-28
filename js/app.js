@@ -40,6 +40,13 @@ window.addEventListener('hashchange', handleRoute);
 window.addEventListener('load', init);
 
 async function init() {
+    // Render Footer
+    const footer = document.getElementById('version-footer');
+    if (footer) {
+        const year = new Date().getFullYear();
+        footer.textContent = `Copyright Bibliotheek Noordwest Veluwe ${year} - Versie ${CONFIG.APP_VERSION}`;
+    }
+
     // Check for secret in URL
     const params = new URLSearchParams(window.location.search);
     const secret = params.get('secret');
