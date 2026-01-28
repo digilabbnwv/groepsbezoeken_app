@@ -336,6 +336,13 @@ body {
     transform: scale(0.99);
 }
 
+.option-btn.selected {
+    border-color: var(--primary);
+    background-color: var(--color-oranje-light);
+    box-shadow: 0 0 0 3px var(--color-oranje-light);
+    font-weight: 600;
+}
+
 .feedback-overlay {
     position: fixed;
     top: 0;

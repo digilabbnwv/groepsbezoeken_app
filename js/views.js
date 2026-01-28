@@ -116,7 +116,7 @@ export const Views = {
         return div;
     },
 
-    playerGame(question, progressText, attempts, maxAttempts, onAnswer, onHint, hintsUsed, timePenalty, teamData, animationClass) {
+    playerGame(question, progressText, attempts, maxAttempts, onAnswer, timePenalty, teamData, animationClass) {
         const div = document.createElement('div');
         div.className = 'player-layout';
 
@@ -131,6 +131,9 @@ export const Views = {
                 ${question.options.map((opt, i) => `
                     <button class="btn option-btn" data-idx="${i}">${opt}</button>
                 `).join('')}
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button id="btn-submit-mcq" class="btn btn-primary" disabled>Check</button>
             </div>`;
         } else if (isMatch) {
             contentHtml = `
@@ -201,11 +204,8 @@ export const Views = {
                             <h2 style="margin-bottom: 20px;">${question.prompt}</h2>
                             ${contentHtml}
                             
-                            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="margin-top: 20px; display: flex; justify-content: flex-start; align-items: center;">
                                 <span style="font-size: 0.9rem;">Poging ${attempts}/${maxAttempts}</span>
-                                <button id="btn-hint" class="btn btn-secondary" ${hintsUsed >= 3 ? 'disabled' : ''}>
-                                    Hint (${3 - hintsUsed} over)
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -554,16 +554,23 @@ function createTeamRow(t) {
     const isOnline = (new Date() - lastSeen) < 20000;
 
     let avatar = '';
-    let name = t.teamName;
+    let name = t.teamName || 'Team';
+
+    // Resolve animal info from ID OR Name
+    let anim = null;
     if (t.animalId) {
-        const anim = ANIMALS.find(a => a.id == t.animalId);
-        if (anim) {
-            avatar = `<span style="font-size: 1.5rem; margin-right: 5px;">${getAnimalIcon(anim.name)}</span>`;
-            name = anim.teamName;
-        }
+        anim = ANIMALS.find(a => a.id == t.animalId);
+    }
+    if (!anim && t.teamName) {
+        anim = ANIMALS.find(a => a.teamName === t.teamName);
     }
 
-    const pct = Math.min(100, Math.round((t.progress / 12) * 100));
+    if (anim) {
+        avatar = `<span style="font-size: 1.5rem; margin-right: 5px;">${getAnimalIcon(anim.name)}</span>`;
+        name = anim.teamName;
+    }
+
+    const pct = Math.min(100, Math.round(((t.progress || 0) / 12) * 100));
     const row = document.createElement('div');
     row.className = 'team-row';
     row.dataset.teamId = t.teamId;
@@ -578,8 +585,7 @@ function createTeamRow(t) {
             </div>
         </div>
         <div style="display: flex; align-items: center; gap: 15px;">
-            <small>${t.progress}/12</small>
-            <span title="Hints">💡 ${t.hintsUsed}</span>
+            <small>${t.progress || 0}/12</small>
             <div class="status-indicator ${isOnline ? 'status-online' : ''}" title="${isOnline ? 'Online' : 'Offline'}"></div>
         </div>
     `;

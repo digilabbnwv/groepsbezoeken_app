@@ -280,7 +280,8 @@ function showCurrentQuestion(animOverride = null) {
         `${p.currentQIndex + 1}/12`,
         p.currentAttempts,
         2,
-        null, null, p.hintsUsedForQ, p.info.timePenaltySeconds,
+        null, // onAnswer (unused)
+        p.info.timePenaltySeconds,
         p.info, // Pass team data for header
         animOverride || (p.currentAttempts > 0 ? 'animate__headShake' : 'animate__fadeInRight') // Default Animation Logic
     );
@@ -289,10 +290,24 @@ function showCurrentQuestion(animOverride = null) {
 
     // Attach Events
     if (question.type === 'mcq') {
+        let selectedIdx = null;
         const btns = view.querySelectorAll('.option-btn');
+        const checkBtn = view.querySelector('#btn-submit-mcq');
+
         btns.forEach(btn => {
-            btn.onclick = () => checkAnswer(parseInt(btn.dataset.idx), question);
+            btn.onclick = () => {
+                btns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedIdx = parseInt(btn.dataset.idx);
+                if (checkBtn) checkBtn.disabled = false;
+            };
         });
+
+        if (checkBtn) {
+            checkBtn.onclick = () => {
+                if (selectedIdx !== null) checkAnswer(selectedIdx, question);
+            };
+        }
     } else if (question.type === 'match') {
         let selectedLeft = null;
         let selectedRight = null;
