@@ -12,7 +12,7 @@ export const CONFIG = {
         adminUpdateWords: `${BASE_URL}/api/adminUpdateWords`,
         purgeSession: `${BASE_URL}/api/purgeSession`
     },
-    POLLING_INTERVAL: 50000000,
+    POLLING_INTERVAL: 5000,
     MAX_TIME_SECONDS: 45 * 60,
     PENALTY_SECONDS: 30,
     MAX_HINTS: 3
