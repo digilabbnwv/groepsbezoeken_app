@@ -114,7 +114,7 @@ export const API = {
         return data;
     },
 
-    async joinTeam(sessionCode, animalId) {
+    async joinTeam(sessionCode, animalId, extraData = {}) {
         if (!CONFIG.ENDPOINTS.joinTeam) {
             console.log("MOCK: joinTeam", animalId);
             await delay(500);
@@ -128,8 +128,6 @@ export const API = {
             if (db.teams[teamId]) return db.teams[teamId];
 
             // Create new
-            // Fixed sentence: "In de bibliotheek vinden we verhalen om in te verdwijnen: spanning, actie, fantasie, verbeelding, en samen ontdekken we nieuwe werelden."
-            // Cleaned for 20 words:
             const mockSentence = "In de bibliotheek vinden we verhalen om in te verdwijnen spanning actie fantasie verbeelding en samen ontdekken we nieuwe werelden".split(" ");
             const word1 = mockSentence[(animalId - 1) * 2] || "???";
             const word2 = mockSentence[(animalId - 1) * 2 + 1] || "???";
@@ -138,8 +136,8 @@ export const API = {
                 teamId,
                 teamToken: "token-" + animalId,
                 animalId,
-                teamName: "Team " + animalId, // Simpel fallback, UI maps animalId to name
-                teamColor: "#000",
+                teamName: extraData.teamName || ("Team " + animalId),
+                teamColor: extraData.teamColor || "#000",
                 word1: word1,
                 word2: word2,
                 progress: 0,
@@ -155,7 +153,12 @@ export const API = {
 
         const res = await fetchWithTimeout(CONFIG.ENDPOINTS.joinTeam, {
             method: 'POST',
-            body: JSON.stringify({ secret: CONFIG.SECRET, sessionCode, animalId })
+            body: JSON.stringify({
+                secret: CONFIG.SECRET,
+                sessionCode,
+                animalId,
+                ...extraData
+            })
         });
         return res.json();
     },

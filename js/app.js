@@ -164,7 +164,15 @@ async function startAvatarSelection(code) {
                     btn.textContent = "Bezig...";
                     btn.disabled = true;
 
-                    const team = await API.joinTeam(code, selectedId);
+                    // Resolve animal details
+                    const anim = ANIMALS.find(a => a.id == selectedId);
+                    const tName = anim ? anim.teamName : ("Team " + selectedId);
+                    const tColor = anim ? anim.color : "#000";
+
+                    const team = await API.joinTeam(code, selectedId, {
+                        teamName: tName,
+                        teamColor: tColor
+                    });
 
                     // Init Player State
                     State.player.teamId = team.teamId;
