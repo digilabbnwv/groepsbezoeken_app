@@ -1,21 +1,19 @@
+// config.js
+const BASE_URL = "https://groepsbezoeken-bieb-app.digilab-464.workers.dev";
 
 export const CONFIG = {
-    SECRET: "EDIT_ME_SECRET", // Beheerder vult dit in
+    BASE_URL,
+    SECRET: "EDIT_ME_SECRET",
     ENDPOINTS: {
-        createSession: "", // POST
-        fetchSessionState: "", // GET
-        joinTeam: "", // POST
-        updateTeam: "", // POST
-
-        adminUpdateWords: "", // POST
-        purgeSession: "" // POST
+        createSession: `${BASE_URL}/api/createSession`,
+        fetchSessionState: `${BASE_URL}/api/fetchSessionState`,
+        joinTeam: `${BASE_URL}/api/joinTeam`,
+        updateTeam: `${BASE_URL}/api/updateTeam`,
+        adminUpdateWords: `${BASE_URL}/api/adminUpdateWords`,
+        purgeSession: `${BASE_URL}/api/purgeSession`
     },
-    // Polling interval in ms
     POLLING_INTERVAL: 5000,
-    // Timer max seconds (45 min)
     MAX_TIME_SECONDS: 45 * 60,
-    // Penalty seconds
     PENALTY_SECONDS: 30,
-    // Max hints
     MAX_HINTS: 3
 };
