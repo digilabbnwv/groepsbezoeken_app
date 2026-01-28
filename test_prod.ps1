@@ -28,9 +28,9 @@ Start-Sleep -Seconds 1
 
 Write-Host "`n--- 2. Joining 3 Teams ---" -ForegroundColor Cyan
 $animals = @(
-    @{ id = 1; name = "Panda" }, 
-    @{ id = 2; name = "Haas" }, 
-    @{ id = 3; name = "Koe" }
+    @{ id = 1; name = "Panda"; teamName = "Pittige Panda's" }, 
+    @{ id = 2; name = "Koe"; teamName = "Kale Koeien" }, 
+    @{ id = 3; name = "Leeuw"; teamName = "Lollige Leeuwen" }
 )
 
 foreach ($a in $animals) {
@@ -38,6 +38,7 @@ foreach ($a in $animals) {
         secret      = $secret
         sessionCode = $code
         animalId    = $a.id
+        teamName    = $a.teamName
     } | ConvertTo-Json
     
     try {
