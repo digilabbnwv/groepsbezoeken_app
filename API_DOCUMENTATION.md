@@ -105,26 +105,7 @@ Updates the progress or state of a specific team.
     }
     ```
 
-### 5. Admin Update Session
-Controls session properties.
-
-*   **Config Key:** `adminUpdateSession`
-*   **Method:** `POST`
-*   **Request Body:**
-    ```json
-    {
-      "secret": "YOUR_ADMIN_SECRET",
-      "action": "customAction" 
-    }
-    ```
-*   **Response:**
-    ```json
-    {
-      "ok": true
-    }
-    ```
-
-### 6. Admin Update Words
+### 5. Admin Update Words
 Updates the list of words/solution sentence for the session.
 
 *   **Config Key:** `adminUpdateWords`
@@ -146,7 +127,7 @@ Updates the list of words/solution sentence for the session.
     }
     ```
 
-### 7. Purge Session
+### 6. Purge Session
 Resets or clears the session data.
 
 *   **Config Key:** `purgeSession`
