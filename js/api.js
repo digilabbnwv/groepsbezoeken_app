@@ -180,7 +180,7 @@ export const API = {
                 });
             } catch (e) { console.warn("Sync error", e); }
         }
-        return data;
+        return { ...fullData, ...data };
     },
 
     async updateTeam(payload) {

@@ -201,12 +201,9 @@ async function startAvatarSelection(code) {
             } catch (e) {
                 alert("Kon team niet registreren: " + e.message);
                 btn.disabled = false;
-                renderAvatarScreen(); // refresh taken?
             }
         };
     }
-};
-renderAvatarScreen();
 }
 
 function enterGameLoop() {
