@@ -151,25 +151,32 @@ export const API = {
             return newTeam;
         }
 
+        // Generate words client-side to ensure they exist (backend might not generate them)
+        const mockSentence = "In de bibliotheek vinden we verhalen om in te verdwijnen spanning actie fantasie verbeelding en samen ontdekken we nieuwe werelden".split(" ");
+        const word1 = mockSentence[(animalId - 1) * 2] || "???";
+        const word2 = mockSentence[(animalId - 1) * 2 + 1] || "???";
+
+        const fullData = { word1, word2, ...extraData };
+
         const res = await fetchWithTimeout(CONFIG.ENDPOINTS.joinTeam, {
             method: 'POST',
             body: JSON.stringify({
                 secret: CONFIG.SECRET,
                 sessionCode,
                 animalId,
-                ...extraData
+                ...fullData
             })
         });
         const data = await res.json();
 
-        // Force update to save extra fields (name/color) that join might ignore
+        // Force update to save extra fields (name/color/words)
         if (data.teamId && data.teamToken) {
             try {
                 await this.updateTeam({
                     teamId: data.teamId,
                     teamToken: data.teamToken,
                     sessionCode,
-                    ...extraData
+                    ...fullData
                 });
             } catch (e) { console.warn("Sync error", e); }
         }

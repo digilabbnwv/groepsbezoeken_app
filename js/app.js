@@ -144,70 +144,69 @@ async function startAvatarSelection(code) {
     try {
         const session = await API.fetchSessionState(code);
         if (session.teams) {
-            takenIds = session.teams.map(t => t.animalId);
+            takenIds = session.teams.map(t => parseInt(t.animalId));
         }
     } catch (e) { }
 
-    let selectedId = null;
+    // Render once - handle selection internally in View to avoid re-renders (fixes animation glitch)
+    render(Views.playerAvatarSelection(takenIds));
 
-    const renderAvatarScreen = () => {
-        render(Views.playerAvatarSelection(takenIds, (id) => {
-            selectedId = id;
-            renderAvatarScreen();
-        }, selectedId));
+    // Bind confirm
+    const btn = document.getElementById('btn-confirm');
+    if (btn) {
+        btn.onclick = async () => {
+            const selectedEl = document.querySelector('.animal-card.selected');
+            if (!selectedEl) return;
+            const selectedId = parseInt(selectedEl.dataset.id);
 
-        // Bind confirm
-        const btn = document.getElementById('btn-confirm');
-        if (btn && !btn.disabled) {
-            btn.onclick = async () => {
-                try {
-                    btn.textContent = "Bezig...";
-                    btn.disabled = true;
+            try {
+                btn.textContent = "Bezig...";
+                btn.disabled = true;
 
-                    // Resolve animal details
-                    const anim = ANIMALS.find(a => a.id == selectedId);
-                    const tName = anim ? anim.teamName : ("Team " + selectedId);
-                    const tColor = anim ? anim.color : "#000";
+                // Resolve animal details
+                const anim = ANIMALS.find(a => a.id == selectedId);
+                const tName = anim ? anim.teamName : ("Team " + selectedId);
+                const tColor = anim ? anim.color : "#000";
 
-                    const team = await API.joinTeam(code, selectedId, {
-                        teamName: tName,
-                        teamColor: tColor
-                    });
+                const team = await API.joinTeam(code, selectedId, {
+                    teamName: tName,
+                    teamColor: tColor
+                });
 
-                    // Init Player State
-                    State.player.teamId = team.teamId;
-                    State.player.teamToken = team.teamToken;
-                    State.player.info = team; // color, name, animalId
+                // Init Player State
+                State.player.teamId = team.teamId;
+                State.player.teamToken = team.teamToken;
+                State.player.info = team; // color, name, animalId
 
-                    // Seeded Shuffle of Questions
-                    // Seed = sessionCode + teamId
-                    const seedStr = code + team.teamId;
-                    const qIndices = State.questions.map((_, i) => i);
-                    State.player.questionsOrder = seededShuffle(qIndices, stringToSeed(seedStr));
-                    State.player.currentQIndex = team.progress || 0; // resume progress
+                // Seeded Shuffle of Questions
+                // Seed = sessionCode + teamId
+                const seedStr = code + team.teamId;
+                const qIndices = State.questions.map((_, i) => i);
+                State.player.questionsOrder = seededShuffle(qIndices, stringToSeed(seedStr));
+                State.player.currentQIndex = team.progress || 0; // resume progress
 
-                    // Save to Storage
-                    Storage.set('player_session', {
-                        sessionCode: code,
-                        teamId: team.teamId,
-                        teamToken: team.teamToken,
-                        teamName: team.teamName,
-                        info: team,
-                        questionsOrder: State.player.questionsOrder,
-                        currentQIndex: State.player.currentQIndex
-                    });
+                // Save to Storage
+                Storage.set('player_session', {
+                    sessionCode: code,
+                    teamId: team.teamId,
+                    teamToken: team.teamToken,
+                    teamName: team.teamName,
+                    info: team,
+                    questionsOrder: State.player.questionsOrder,
+                    currentQIndex: State.player.currentQIndex
+                });
 
-                    enterGameLoop();
+                enterGameLoop();
 
-                } catch (e) {
-                    alert("Kon team niet registreren: " + e.message);
-                    btn.disabled = false;
-                    renderAvatarScreen(); // refresh taken?
-                }
-            };
-        }
-    };
-    renderAvatarScreen();
+            } catch (e) {
+                alert("Kon team niet registreren: " + e.message);
+                btn.disabled = false;
+                renderAvatarScreen(); // refresh taken?
+            }
+        };
+    }
+};
+renderAvatarScreen();
 }
 
 function enterGameLoop() {

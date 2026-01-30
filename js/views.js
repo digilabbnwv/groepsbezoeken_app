@@ -64,7 +64,7 @@ export const Views = {
         return div;
     },
 
-    playerAvatarSelection(takenIds, onSelect, selectedId) {
+    playerAvatarSelection(takenIds) {
         const div = document.createElement('div');
         div.className = 'screen';
 
@@ -74,15 +74,12 @@ export const Views = {
         logo.className = 'bg-logo';
         div.appendChild(logo);
 
-        // Default to empty array if undefined
         const takenList = takenIds || [];
 
         let gridHtml = '';
         ANIMALS.forEach(animal => {
-            // An animal is taken if it is in the list, UNLESS it is the one currently selected by us
-            const isTaken = takenList.includes(animal.id) && animal.id !== selectedId;
-            const isSelected = animal.id === selectedId;
-            const cls = `animal-card ${isSelected ? 'selected' : ''} ${isTaken ? 'disabled' : ''}`;
+            const isTaken = takenList.includes(animal.id);
+            const cls = `animal-card ${isTaken ? 'disabled' : ''}`;
 
             gridHtml += `
                 <div class="${cls}" data-id="${animal.id}">
@@ -101,15 +98,21 @@ export const Views = {
         content.innerHTML = `
             <h2 style="margin-bottom: 20px;">Kies je team</h2>
             <div class="animal-grid">${gridHtml}</div>
-            <button id="btn-confirm" class="btn btn-primary btn-large" style="margin-top: 20px;" ${selectedId ? '' : 'disabled'}>Bevestigen</button>
+            <button id="btn-confirm" class="btn btn-primary btn-large" style="margin-top: 20px;" disabled>Bevestigen</button>
         `;
         div.appendChild(content);
 
-        div.querySelectorAll('.animal-card').forEach(el => {
+        const btn = div.querySelector('#btn-confirm');
+        const cards = div.querySelectorAll('.animal-card');
+
+        cards.forEach(el => {
             el.onclick = () => {
-                if (!el.classList.contains('disabled')) {
-                    onSelect(parseInt(el.dataset.id));
-                }
+                if (el.classList.contains('disabled')) return;
+
+                cards.forEach(c => c.classList.remove('selected'));
+                el.classList.add('selected');
+
+                if (btn) btn.disabled = false;
             };
         });
 
@@ -330,11 +333,15 @@ export const Views = {
 
         // Render teams list
         const teamList = teamsPanel.querySelector('#team-list');
-        // Sort teams by progress descending (Leaderboard)
-        const sortedTeams = [...teams].sort((a, b) => (b.progress || 0) - (a.progress || 0));
-        sortedTeams.forEach(t => {
-            teamList.appendChild(createTeamRow(t));
-        });
+        if (!teams || teams.length === 0) {
+            teamList.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Er zijn nog geen teams die deelnemen.</div>';
+        } else {
+            // Sort teams by progress descending (Leaderboard)
+            const sortedTeams = [...teams].sort((a, b) => (b.progress || 0) - (a.progress || 0));
+            sortedTeams.forEach(t => {
+                teamList.appendChild(createTeamRow(t));
+            });
+        }
 
         const wordsPanel = document.createElement('div');
         wordsPanel.className = 'admin-panel';
