@@ -433,11 +433,16 @@ export const Views = {
 
             // Re-build list
             teamList.innerHTML = '';
-            // Sort teams by progress descending (Leaderboard)
-            const sortedTeams = [...teams].sort((a, b) => (b.progress || 0) - (a.progress || 0));
-            sortedTeams.forEach(t => {
-                teamList.appendChild(createTeamRow(t));
-            });
+
+            if (!teams || teams.length === 0) {
+                teamList.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Er zijn nog geen teams die deelnemen.</div>';
+            } else {
+                // Sort teams by progress descending (Leaderboard)
+                const sortedTeams = [...teams].sort((a, b) => (b.progress || 0) - (a.progress || 0));
+                sortedTeams.forEach(t => {
+                    teamList.appendChild(createTeamRow(t));
+                });
+            }
 
             // FLIP Animation: Invert & Play
             requestAnimationFrame(() => {
