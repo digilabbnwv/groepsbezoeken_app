@@ -82,7 +82,17 @@ export const API = {
             method: 'POST',
             body: JSON.stringify({ secret: CONFIG.SECRET, sessionName })
         });
-        return res.json();
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || `Server fout: ${res.status}`);
+        }
+
+        if (!data.sessionCode) {
+            throw new Error("Ongeldige response: Geen sessie code ontvangen");
+        }
+
+        return data;
     },
 
     async fetchSessionState(sessionCode) {

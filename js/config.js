@@ -3,7 +3,7 @@ const BASE_URL = "https://groepsbezoeken-bieb-app.digilab-464.workers.dev";
 
 export const CONFIG = {
     BASE_URL,
-    SECRET: "EDIT_ME_SECRET",
+    SECRET: "BNWV2026",
     ENDPOINTS: {
         createSession: `${BASE_URL}/api/createSession`,
         fetchSessionState: `${BASE_URL}/api/fetchSessionState`,
