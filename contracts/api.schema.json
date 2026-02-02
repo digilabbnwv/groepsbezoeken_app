@@ -1,0 +1,378 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://groepsbezoeken-app.example.com/schemas/api.json",
+    "title": "Groepsbezoeken API Schemas",
+    "description": "JSON Schema definities voor alle API payloads van de Groepsbezoeken App",
+    "definitions": {
+        "secret": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Authenticatie secret voor API calls"
+        },
+        "sessionCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{3,7}$",
+            "description": "Sessie code (3-7 tekens, uppercase alfanumeriek)"
+        },
+        "animalId": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "description": "ID van het gekozen dier/team (1-10)"
+        },
+        "teamId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Unieke team identifier"
+        },
+        "teamToken": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Authenticatie token voor team operaties"
+        },
+        "progress": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 12,
+            "description": "Aantal voltooide vragen (0-12)"
+        },
+        "wordsArray": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "minItems": 20,
+            "maxItems": 20,
+            "description": "Array van 20 woorden voor de oplossing"
+        },
+        "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp"
+        },
+        "hexColor": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "description": "Hex kleurcode"
+        }
+    },
+    "createSession": {
+        "request": {
+            "type": "object",
+            "required": [
+                "secret",
+                "sessionName"
+            ],
+            "properties": {
+                "secret": {
+                    "$ref": "#/definitions/secret"
+                },
+                "sessionName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "Naam van de sessie (bijv. 'Groep 6B')"
+                }
+            },
+            "additionalProperties": false
+        },
+        "response": {
+            "type": "object",
+            "required": [
+                "sessionId",
+                "sessionCode"
+            ],
+            "properties": {
+                "sessionId": {
+                    "type": "string"
+                },
+                "sessionName": {
+                    "type": "string"
+                },
+                "sessionCode": {
+                    "$ref": "#/definitions/sessionCode"
+                },
+                "startTime": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/timestamp"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "words": {
+                    "$ref": "#/definitions/wordsArray"
+                }
+            }
+        }
+    },
+    "fetchSessionState": {
+        "queryParams": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "$ref": "#/definitions/sessionCode"
+                },
+                "secret": {
+                    "$ref": "#/definitions/secret"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "required": [
+                "sessionCode"
+            ],
+            "properties": {
+                "sessionId": {
+                    "type": "string"
+                },
+                "sessionCode": {
+                    "$ref": "#/definitions/sessionCode"
+                },
+                "sessionName": {
+                    "type": "string"
+                },
+                "startTime": {
+                    "$ref": "#/definitions/timestamp"
+                },
+                "words": {
+                    "$ref": "#/definitions/wordsArray"
+                },
+                "now": {
+                    "$ref": "#/definitions/timestamp"
+                },
+                "teams": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "teamId"
+                        ],
+                        "properties": {
+                            "teamId": {
+                                "$ref": "#/definitions/teamId"
+                            },
+                            "teamName": {
+                                "type": "string"
+                            },
+                            "animalId": {
+                                "$ref": "#/definitions/animalId"
+                            },
+                            "progress": {
+                                "$ref": "#/definitions/progress"
+                            },
+                            "hintsUsed": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 3
+                            },
+                            "timePenaltySeconds": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "lastSeen": {
+                                "$ref": "#/definitions/timestamp"
+                            },
+                            "finished": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "joinTeam": {
+        "request": {
+            "type": "object",
+            "required": [
+                "secret",
+                "sessionCode",
+                "animalId"
+            ],
+            "properties": {
+                "secret": {
+                    "$ref": "#/definitions/secret"
+                },
+                "sessionCode": {
+                    "$ref": "#/definitions/sessionCode"
+                },
+                "animalId": {
+                    "$ref": "#/definitions/animalId"
+                },
+                "teamName": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "teamColor": {
+                    "$ref": "#/definitions/hexColor"
+                },
+                "word1": {
+                    "type": "string"
+                },
+                "word2": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "response": {
+            "type": "object",
+            "required": [
+                "teamId",
+                "teamToken"
+            ],
+            "properties": {
+                "teamId": {
+                    "$ref": "#/definitions/teamId"
+                },
+                "teamToken": {
+                    "$ref": "#/definitions/teamToken"
+                },
+                "animalId": {
+                    "$ref": "#/definitions/animalId"
+                },
+                "teamName": {
+                    "type": "string"
+                },
+                "teamColor": {
+                    "$ref": "#/definitions/hexColor"
+                },
+                "word1": {
+                    "type": "string"
+                },
+                "word2": {
+                    "type": "string"
+                },
+                "progress": {
+                    "$ref": "#/definitions/progress"
+                }
+            }
+        }
+    },
+    "updateTeam": {
+        "request": {
+            "type": "object",
+            "required": [
+                "secret",
+                "teamId",
+                "teamToken"
+            ],
+            "properties": {
+                "secret": {
+                    "$ref": "#/definitions/secret"
+                },
+                "teamId": {
+                    "$ref": "#/definitions/teamId"
+                },
+                "teamToken": {
+                    "$ref": "#/definitions/teamToken"
+                },
+                "sessionCode": {
+                    "$ref": "#/definitions/sessionCode"
+                },
+                "progress": {
+                    "$ref": "#/definitions/progress"
+                },
+                "hintsUsed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                },
+                "timePenaltySeconds": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "teamName": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "finished": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
+        "response": {
+            "type": "object",
+            "required": [
+                "ok"
+            ],
+            "properties": {
+                "ok": {
+                    "type": "boolean",
+                    "const": true
+                }
+            }
+        }
+    },
+    "adminUpdateWords": {
+        "request": {
+            "type": "object",
+            "required": [
+                "secret",
+                "sessionCode",
+                "words"
+            ],
+            "properties": {
+                "secret": {
+                    "$ref": "#/definitions/secret"
+                },
+                "sessionCode": {
+                    "$ref": "#/definitions/sessionCode"
+                },
+                "words": {
+                    "$ref": "#/definitions/wordsArray"
+                }
+            },
+            "additionalProperties": false
+        },
+        "response": {
+            "type": "object",
+            "required": [
+                "ok"
+            ],
+            "properties": {
+                "ok": {
+                    "type": "boolean",
+                    "const": true
+                }
+            }
+        }
+    },
+    "purgeSession": {
+        "request": {
+            "type": "object",
+            "required": [
+                "secret"
+            ],
+            "properties": {
+                "secret": {
+                    "$ref": "#/definitions/secret"
+                },
+                "sessionCode": {
+                    "$ref": "#/definitions/sessionCode"
+                }
+            },
+            "additionalProperties": false
+        },
+        "response": {
+            "type": "object",
+            "required": [
+                "ok"
+            ],
+            "properties": {
+                "ok": {
+                    "type": "boolean",
+                    "const": true
+                }
+            }
+        }
+    }
+}

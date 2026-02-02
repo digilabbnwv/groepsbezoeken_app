@@ -38,11 +38,84 @@ Zie de code in `js/api.js` of de originele aanvraag voor de payload structuren.
 3. **Speler**: Voer de code in op het startscherm.
 
 ## Lokale Ontwikkeling
-Gewoon `index.html` openen in een browser werkt meestal, maar voor modules is een server beter:
+
+### Prerequisites
+- Node.js 18+
+- npm
+
+### Setup
 ```bash
-npx --yes serve
+# Installeer dependencies
+npm install
+
+# Installeer Playwright browsers (voor E2E tests)
+npx playwright install chromium
 ```
-Of gebruik de Live Server extensie in VS Code.
+
+### Development Server
+```bash
+npm run dev
+```
+Dit start een lokale server op `http://localhost:3000`.
+
+### Testing
+
+```bash
+# Unit tests
+npm run test
+
+# Unit tests met watch mode
+npm run test:watch
+
+# Unit tests met coverage
+npm run test:coverage
+
+# E2E tests
+npm run test:e2e
+
+# E2E tests met UI
+npm run test:e2e:ui
+
+# Alle tests + lint
+npm run validate
+```
+
+### Linting
+```bash
+npm run lint
+npm run lint:fix
+```
+
+### CI/CD
+De repository bevat een GitHub Actions workflow (`.github/workflows/ci.yml`) die automatisch draait bij push/PR:
+- Linting
+- Unit tests
+- E2E tests
+- Build validatie
+
+## Project Structuur
+
+```
+├── js/
+│   ├── app.js           # Hoofd applicatie logica
+│   ├── api.js           # API communicatie
+│   ├── config.js        # Configuratie (endpoints, secrets)
+│   ├── constants.js     # Constanten (dieren, game config)
+│   ├── payloadBuilder.js # Pure functies voor API payloads
+│   ├── validators.js    # Validatie functies
+│   ├── views.js         # UI componenten
+│   └── utils.js         # Hulpfuncties
+├── contracts/
+│   ├── api.schema.json  # JSON Schema voor API
+│   ├── api.examples.json # Voorbeeld payloads
+│   └── CHANGELOG.md     # Contract versioning
+├── tests/
+│   ├── unit/            # Unit tests (Vitest)
+│   ├── integration/     # Contract validatie tests
+│   └── e2e/             # End-to-end tests (Playwright)
+└── ...
+```
+
 
 ## Database (Microsoft Lists)
 De applicatie is ontworpen om te werken met Microsoft Lists als backend (via Power Automate).

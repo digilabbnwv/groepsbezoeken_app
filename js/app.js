@@ -146,7 +146,7 @@ async function startAvatarSelection(code) {
         if (session.teams) {
             takenIds = session.teams.map(t => parseInt(t.animalId));
         }
-    } catch (e) { }
+    } catch (e) { /* Session check failed, continue with empty takenIds */ }
 
     // Render once - handle selection internally in View to avoid re-renders (fixes animation glitch)
     render(Views.playerAvatarSelection(takenIds));
@@ -218,7 +218,7 @@ function enterGameLoop() {
 
 
 
-        } catch (e) { }
+        } catch (e) { /* Polling error, silently continue */ }
     }, CONFIG.POLLING_INTERVAL);
 
     showCurrentQuestion();
@@ -367,7 +367,7 @@ function showCurrentQuestion(animOverride = null) {
             }
         });
 
-        function tryMatch() {
+        const tryMatch = () => {
             if (selectedLeft !== null && selectedRight !== null) {
                 // Create link
                 matches[selectedLeft] = selectedRight;
@@ -383,7 +383,7 @@ function showCurrentQuestion(animOverride = null) {
                 selectedLeft = null;
                 selectedRight = null;
             }
-        }
+        };
 
         view.querySelector('#btn-submit-match').onclick = () => {
             if (Object.keys(matches).length < 4) {
@@ -600,7 +600,7 @@ async function showFinished() {
         `${idx2 + 1}. ${w2}`
     ];
 
-    render(Views.playerFinished(displayTeamName, words, p.info.timePenaltySeconds));
+    render(Views.playerFinished(displayName, words, p.info.timePenaltySeconds));
     if (pollInterval) clearInterval(pollInterval);
 }
 

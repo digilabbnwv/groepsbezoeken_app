@@ -1,12 +1,11 @@
 
 import { ANIMALS } from './animals.js';
 import { formatTime } from './utils.js';
+import { getAnimalIcon, SOLUTION_WORDS } from './constants.js';
 
 export const Views = {
-    SOLUTION_WORDS: [
-        "In", "de", "bibliotheek", "vinden", "we", "verhalen", "om", "in", "te", "verdwijnen",
-        "spanning", "actie", "fantasie", "verbeelding", "en", "samen", "ontdekken", "we", "nieuwe", "werelden"
-    ],
+    // SOLUTION_WORDS is now imported from constants.js
+    SOLUTION_WORDS,
 
     landing() {
         const div = document.createElement('div');
@@ -611,16 +610,4 @@ function createTeamRow(t) {
     return row;
 }
 
-function getAnimalIcon(name) {
-    const icons = {
-        'Panda': '🐼', 'Haas': '🐰', 'Koe': '🐮', 'Vos': '🦊',
-        'Leeuw': '🦁', 'Kikker': '🐸', 'Slang': '🐍', 'Beer': '🐻',
-        'Giraffe': '🦒', 'Kraai': '🐦', 'Dolfijn': '🐬', 'Koala': '🐨',
-        'Stier': '🐂', 'Kwal': '🪼', 'Stokstaart': '🐿️'
-    };
-    // Fuzzy check?
-    for (const k of Object.keys(icons)) {
-        if (name.includes(k)) return icons[k];
-    }
-    return '🐾';
-}
+// getAnimalIcon is now imported from constants.js

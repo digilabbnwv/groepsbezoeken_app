@@ -1,0 +1,39 @@
+{
+    "name": "groepsbezoeken-app",
+    "version": "1.0.6",
+    "description": "BiebBattle - Bibliotheek Speurtocht App",
+    "type": "module",
+    "scripts": {
+        "dev": "npx serve . -l 3000",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:ui": "vitest --ui",
+        "test:coverage": "vitest run --coverage",
+        "test:e2e": "playwright test",
+        "test:e2e:ui": "playwright test --ui",
+        "lint": "eslint js/**/*.js tests/**/*.js",
+        "lint:fix": "eslint js/**/*.js tests/**/*.js --fix",
+        "validate": "npm run lint && npm run test && npm run test:e2e",
+        "ci": "npm run lint && npm run test -- --reporter=verbose && npm run test:e2e -- --reporter=github"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.41.0",
+        "@vitest/coverage-v8": "^1.2.0",
+        "@vitest/ui": "^1.2.0",
+        "ajv": "^8.12.0",
+        "ajv-formats": "^2.1.1",
+        "eslint": "^8.56.0",
+        "happy-dom": "^13.3.0",
+        "vitest": "^1.2.0"
+    },
+    "keywords": [
+        "bibliotheek",
+        "speurtocht",
+        "educatie"
+    ],
+    "author": "Bibliotheek Noordwest Veluwe",
+    "license": "MIT",
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

@@ -1,0 +1,179 @@
+{
+    "createSession": {
+        "request": {
+            "secret": "BNWV2026",
+            "sessionName": "Groep 6B - De Leesadventuriers"
+        },
+        "response": {
+            "sessionId": "sess-abc123-def456",
+            "sessionName": "Groep 6B - De Leesadventuriers",
+            "sessionCode": "ABC1234",
+            "startTime": "2026-02-02T10:00:00.000Z",
+            "words": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+            ]
+        }
+    },
+    "fetchSessionState": {
+        "queryParams": "?code=ABC1234&secret=BNWV2026",
+        "response": {
+            "sessionId": "sess-abc123-def456",
+            "sessionCode": "ABC1234",
+            "sessionName": "Groep 6B - De Leesadventuriers",
+            "startTime": "2026-02-02T10:00:00.000Z",
+            "words": [
+                "In",
+                "de",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+            ],
+            "now": "2026-02-02T10:15:00.000Z",
+            "teams": [
+                {
+                    "teamId": "team-1-abc123",
+                    "teamName": "Pittige Panda's",
+                    "animalId": 1,
+                    "progress": 5,
+                    "hintsUsed": 1,
+                    "timePenaltySeconds": 30,
+                    "lastSeen": "2026-02-02T10:14:55.000Z",
+                    "finished": false
+                },
+                {
+                    "teamId": "team-3-def456",
+                    "teamName": "Lollige Leeuwen",
+                    "animalId": 3,
+                    "progress": 8,
+                    "hintsUsed": 0,
+                    "timePenaltySeconds": 0,
+                    "lastSeen": "2026-02-02T10:14:50.000Z",
+                    "finished": false
+                }
+            ]
+        }
+    },
+    "joinTeam": {
+        "request": {
+            "secret": "BNWV2026",
+            "sessionCode": "ABC1234",
+            "animalId": 1,
+            "teamName": "Pittige Panda's",
+            "teamColor": "#E86A2A",
+            "word1": "In",
+            "word2": "de"
+        },
+        "response": {
+            "teamId": "team-1-abc123",
+            "teamToken": "tok-xyz789",
+            "animalId": 1,
+            "teamName": "Pittige Panda's",
+            "teamColor": "#E86A2A",
+            "word1": "In",
+            "word2": "de",
+            "progress": 0
+        }
+    },
+    "updateTeam": {
+        "request": {
+            "secret": "BNWV2026",
+            "teamId": "team-1-abc123",
+            "teamToken": "tok-xyz789",
+            "sessionCode": "ABC1234",
+            "progress": 6,
+            "finished": false
+        },
+        "response": {
+            "ok": true
+        }
+    },
+    "updateTeamFinished": {
+        "_comment": "Example when player finishes the game",
+        "request": {
+            "secret": "BNWV2026",
+            "teamId": "team-1-abc123",
+            "teamToken": "tok-xyz789",
+            "sessionCode": "ABC1234",
+            "progress": 12,
+            "finished": true
+        },
+        "response": {
+            "ok": true
+        }
+    },
+    "adminUpdateWords": {
+        "queryParams": "?code=ABC1234",
+        "request": {
+            "secret": "BNWV2026",
+            "sessionCode": "ABC1234",
+            "words": [
+                "In",
+                "de",
+                "bibliotheek",
+                "vinden",
+                "we",
+                "verhalen",
+                "om",
+                "in",
+                "te",
+                "verdwijnen",
+                "spanning",
+                "actie",
+                "fantasie",
+                "verbeelding",
+                "en",
+                "samen",
+                "ontdekken",
+                "we",
+                "nieuwe",
+                "werelden"
+            ]
+        },
+        "response": {
+            "ok": true
+        }
+    },
+    "purgeSession": {
+        "request": {
+            "secret": "BNWV2026",
+            "sessionCode": "ABC1234"
+        },
+        "response": {
+            "ok": true
+        }
+    }
+}
