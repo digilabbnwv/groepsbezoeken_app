@@ -565,23 +565,40 @@ async function showFinished() {
     });
 
     // Get words from p.info (Should be in join response)
-    // Get words from p.info (Should be in join response)
-    const animId = (p.info && p.info.animalId) ? parseInt(p.info.animalId) : 1;
-    // Wrap around after 10 teams (20 words)
-    const idx1 = ((animId - 1) * 2) % 20 + 1;
+    // Recalculate based on current state to be safe
+    // Resolve animal details
+    let animId = 1;
+    let displayName = "Team";
+
+    if (p.info && p.info.animalId) {
+        animId = parseInt(p.info.animalId);
+        const anim = ANIMALS.find(a => a.id == animId);
+        if (anim) displayName = anim.teamName;
+        else displayName = p.info.teamName || "Team " + animId;
+    } else if (p.teamId) {
+        // Fallback: extract from teamId if format is "team-{id}-..."
+        const parts = p.teamId.split('-'); // team-1-xyz
+        if (parts.length >= 2 && !isNaN(parts[1])) {
+            animId = parseInt(parts[1]);
+            const anim = ANIMALS.find(a => a.id == animId);
+            if (anim) displayName = anim.teamName;
+        }
+    }
+
+    const mockSentence = "In de bibliotheek vinden we verhalen om in te verdwijnen spanning actie fantasie verbeelding en samen ontdekken we nieuwe werelden".split(" ");
+
+    // Logic matches API joinTeam logic
+    const idx1 = (animId - 1) * 2; // 0-based index in array
     const idx2 = idx1 + 1;
 
-    // Format: "1. Woord"
-    const words = [
-        `${idx1}. ${p.info.word1 || '???'}`,
-        `${idx2}. ${p.info.word2 || '???'}`
-    ];
+    const w1 = mockSentence[idx1] || "???";
+    const w2 = mockSentence[idx2] || "???";
 
-    let displayTeamName = p.info.teamName;
-    if (p.info.animalId) {
-        const anim = ANIMALS.find(a => a.id == p.info.animalId);
-        if (anim) displayTeamName = anim.teamName;
-    }
+    // Display 1-based index for user
+    const words = [
+        `${idx1 + 1}. ${w1}`,
+        `${idx2 + 1}. ${w2}`
+    ];
 
     render(Views.playerFinished(displayTeamName, words, p.info.timePenaltySeconds));
     if (pollInterval) clearInterval(pollInterval);

@@ -582,7 +582,14 @@ function createTeamRow(t) {
         name = anim.teamName;
     }
 
-    const pct = Math.min(100, Math.round(((t.progress || 0) / 12) * 100));
+    let pct = Math.min(100, Math.round(((t.progress || 0) / 12) * 100));
+    let barColor = t.teamColor || 'var(--primary)';
+
+    if (t.finished) {
+        pct = 100;
+        barColor = 'var(--success)';
+    }
+
     const row = document.createElement('div');
     row.className = 'team-row';
     row.dataset.teamId = t.teamId;
@@ -593,7 +600,7 @@ function createTeamRow(t) {
         </div>
         <div style="flex: 1; margin: 0 20px;">
             <div style="height: 10px; background: #E5E7EB; border-radius: 5px; overflow: hidden;">
-                <div style="height: 100%; width: ${pct}%; background: ${t.teamColor || 'var(--primary)'}; transition: width 0.5s;"></div>
+                <div style="height: 100%; width: ${pct}%; background: ${barColor}; transition: width 0.5s;"></div>
             </div>
         </div>
         <div style="display: flex; align-items: center; gap: 15px;">
