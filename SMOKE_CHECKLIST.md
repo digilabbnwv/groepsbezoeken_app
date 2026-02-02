@@ -7,7 +7,7 @@ Gebruik deze checklist na elke wijziging om de kernfunctionaliteit te valideren.
 - [ ] Frontend draait lokaal (`npm run dev`) op http://localhost:3000
 - [ ] Worker draait lokaal (`npm run dev:worker`) op http://localhost:8787
 - [ ] Browser dev tools open (voor fouten monitoring)
-- [ ] URL bevat secrets: `?secret=YOUR_SECRET&adminSecret=YOUR_ADMIN_SECRET`
+- [ ] URL bevat secrets: `?secret=BNWV-2026-speler&adminSecret=BNWV-2026-admin`
 
 ## Backend (Worker) Health
 - [ ] `http://localhost:8787/health` retourneert `{"status":"ok"}`

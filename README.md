@@ -35,10 +35,10 @@ De frontend is al geconfigureerd voor GitHub Pages deployment.
 
 **Gebruik de app met secrets in de URL:**
 ```
-https://digilabbnwv.github.io/groepsbezoeken_app/?secret=YOUR_APP_SECRET
+https://digilabbnwv.github.io/groepsbezoeken_app/?secret=BNWV-2026-speler
 
 # Voor admin toegang:
-https://digilabbnwv.github.io/groepsbezoeken_app/#admin?secret=YOUR_APP_SECRET&adminSecret=YOUR_ADMIN_SECRET
+https://digilabbnwv.github.io/groepsbezoeken_app/#admin?secret=BNWV-2026-speler&adminSecret=BNWV-2026-admin
 ```
 
 ### 2. Backend Setup (Cloudflare Workers + D1)
