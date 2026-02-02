@@ -30,10 +30,15 @@ async function fetchWithTimeout(url, options = {}) {
     const { endpointKey, ...fetchOptions } = options;
 
     // Automatically append 'secret' query parameter if it exists in CONFIG
-    if (CONFIG.SECRET) {
+    // Use adminSecret for admin endpoints if available
+    const secretToUse = fetchOptions.useAdminSecret && CONFIG.ADMIN_SECRET
+        ? CONFIG.ADMIN_SECRET
+        : CONFIG.SECRET;
+
+    if (secretToUse) {
         try {
             const urlObj = new URL(url, window.location.origin);
-            urlObj.searchParams.append('secret', CONFIG.SECRET);
+            urlObj.searchParams.append('secret', secretToUse);
             url = urlObj.toString();
         } catch (e) {
             console.warn("Could not append secret to URL", url);
@@ -271,12 +276,13 @@ export const API = {
             url.searchParams.append('code', payload.sessionCode);
         }
 
-        // Note: fetchWithTimeout logic will ALSO append 'secret' to this URL object if configured.
-        // But fetchWithTimeout expects a string or URL. We should pass string.
+        // Admin endpoint uses ADMIN_SECRET if available
+        const adminSecret = CONFIG.ADMIN_SECRET || CONFIG.SECRET;
 
         const res = await fetchWithTimeout(url.toString(), {
             method: 'POST',
-            body: JSON.stringify({ secret: CONFIG.SECRET, ...payload })
+            useAdminSecret: true,
+            body: JSON.stringify({ secret: adminSecret, ...payload })
         });
         return res.json();
     },
@@ -286,9 +292,13 @@ export const API = {
             localStorage.removeItem(MOCK_KEY);
             return { ok: true };
         }
+        // Admin endpoint uses ADMIN_SECRET if available
+        const adminSecret = CONFIG.ADMIN_SECRET || CONFIG.SECRET;
+
         const res = await fetchWithTimeout(CONFIG.ENDPOINTS.purgeSession, {
             method: 'POST',
-            body: JSON.stringify({ secret: CONFIG.SECRET, ...payload })
+            useAdminSecret: true,
+            body: JSON.stringify({ secret: adminSecret, ...payload })
         });
         return res.json();
     }

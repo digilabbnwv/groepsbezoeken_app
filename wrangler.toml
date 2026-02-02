@@ -1,0 +1,35 @@
+# Cloudflare Worker Configuration
+# https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "groepsbezoeken-bieb-app"
+main = "worker/src/index.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "groepsbezoeken-db"
+database_id = "45e7c574-2389-4392-8bd8-3dd14ed8e68a"
+
+# Environment variables (non-secret)
+[vars]
+ALLOWED_ORIGINS = "https://digilabbnwv.github.io,http://localhost:3000,http://127.0.0.1:3000"
+RATE_LIMIT_MAX_REQUESTS = "60"
+RATE_LIMIT_WINDOW_SECONDS = "60"
+AUTO_PURGE_DAYS = "14"
+
+# Secrets (set via wrangler secret put)
+# APP_SECRET = (set via: wrangler secret put APP_SECRET)
+# ADMIN_SECRET = (set via: wrangler secret put ADMIN_SECRET)
+
+# Cron triggers for auto-purge
+# UTC 22:00 on Sunday = 23:00 CET / 00:00 CEST (Europe/Amsterdam)
+# For consistent behavior, we use UTC 22:00 which is ~23:00 Dutch winter time
+# [triggers]
+# crons = ["0 22 * * 0"]
+
+# Local development settings
+[dev]
+port = 8787
+local_protocol = "http"

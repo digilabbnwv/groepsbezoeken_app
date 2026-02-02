@@ -1,0 +1,9 @@
+# Cloudflare Worker Development Variables
+# Copy this file to .dev.vars and fill in your values
+# .dev.vars is gitignored and will not be committed
+
+# App secret for regular API endpoints
+APP_SECRET=your_app_secret_here
+
+# Admin secret for privileged endpoints (adminUpdateWords, purgeSession)
+ADMIN_SECRET=your_admin_secret_here

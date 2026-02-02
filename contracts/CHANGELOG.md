@@ -3,6 +3,30 @@
 Alle wijzigingen aan de API contract worden hier gedocumenteerd.
 Dit bestand volgt [Keep a Changelog](https://keepachangelog.com/nl/) principes.
 
+## [1.1.0] - 2026-02-02
+
+### Changed
+- **Backend**: Power Automate + Microsoft Lists vervangen door Cloudflare Workers + D1
+- **Authentication**: Twee-niveau secret model (APP_SECRET + ADMIN_SECRET)
+- **Session Code**: Nu consistent 7 karakters (ABC1234 formaat)
+
+### Added
+- Rate limiting (60 req/min per IP per sessie)
+- Auto-purge cron (zondag 22:00 UTC, sessies ouder dan 14 dagen)
+- CORS ondersteuning voor meerdere origins
+- Team token validatie voor updateTeam
+- Finished veld voor teams
+
+### Security
+- Secrets niet langer hardcoded, maar via URL query params
+- Admin endpoints vereisen apart ADMIN_SECRET
+
+### Performance
+- Directe D1 database calls (geen Power Automate orkestratie)
+- Edge-based rate limiting per Cloudflare colo
+
+---
+
 ## [1.0.0] - 2026-02-02
 
 ### Added

@@ -9,7 +9,7 @@ export default defineConfig({
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
-            include: ['js/**/*.js'],
+            include: ['js/**/*.js', 'worker/**/*.js'],
             exclude: ['js/app.js'], // Main app file is tested via E2E
         },
         setupFiles: ['./tests/setup.js'],
