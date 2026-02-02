@@ -735,8 +735,8 @@ async function adminLoop() {
                 if (btn.dataset.action === 'openVault') {
                     // Trigger Open Vault Animation
                     render(Views.openVaultAnimation());
-                    // Maybe stop polling?
-                    if (pollInterval) clearInterval(pollInterval);
+                    // Stop polling when vault opens
+                    PollingService.stopAll();
                     return;
                 }
 
