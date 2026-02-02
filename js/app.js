@@ -4,6 +4,7 @@ import { ANIMALS } from './animals.js';
 import { Storage, seededShuffle, stringToSeed, formatTime } from './utils.js';
 import { Views } from './views.js';
 import { CONFIG } from './config.js';
+import { PollingService } from './polling.js';
 
 // Global App State
 const State = {
@@ -28,7 +29,7 @@ const State = {
 };
 
 const Root = document.getElementById('root');
-let pollInterval = null;
+// pollInterval is now managed by PollingService
 
 // Dyslexia Toggle
 document.getElementById('dyslexia-toggle').onclick = () => {
@@ -69,9 +70,8 @@ async function init() {
 }
 
 function handleRoute() {
-    // Clear polling
-    if (pollInterval) clearInterval(pollInterval);
-    pollInterval = null;
+    // Stop all polling when navigating
+    PollingService.stopAll();
 
     const hash = window.location.hash;
     if (hash === '#admin') {
@@ -207,18 +207,13 @@ async function startAvatarSelection(code) {
 }
 
 function enterGameLoop() {
-    // Start Polling 
-    pollInterval = setInterval(async () => {
-        try {
-            const s = await API.fetchSessionState(State.player.sessionCode);
-
-            // Check paused (Deprecated, but ensuring cleanup)
-            // if (s.status === 'paused') { ... } 
-            // Removed.
-
-
-
-        } catch (e) { /* Polling error, silently continue */ }
+    // Start Polling using PollingService
+    PollingService.startInterval('playerPolling', async () => {
+        const s = await API.fetchSessionState(State.player.sessionCode);
+        // Only process if we got a valid response (not aborted)
+        if (s) {
+            // Future: handle pause/resume states here
+        }
     }, CONFIG.POLLING_INTERVAL);
 
     showCurrentQuestion();
@@ -601,7 +596,8 @@ async function showFinished() {
     ];
 
     render(Views.playerFinished(displayName, words, p.info.timePenaltySeconds));
-    if (pollInterval) clearInterval(pollInterval);
+    // Stop polling when finished
+    PollingService.stopInterval('playerPolling');
 }
 
 // ==========================================
@@ -613,8 +609,8 @@ function startAdmin() {
             const session = await API.createSession(name);
             State.admin.session = session;
             adminLoop();
-            // Start polling
-            pollInterval = setInterval(adminLoop, CONFIG.POLLING_INTERVAL);
+            // Start polling using PollingService
+            PollingService.startInterval('adminPolling', adminLoop, CONFIG.POLLING_INTERVAL);
         } catch (e) {
             alert("Fout bij maken sessie: " + e.message);
         }

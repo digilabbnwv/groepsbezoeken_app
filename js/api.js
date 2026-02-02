@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { Storage } from './utils.js';
+import { PollingService } from './polling.js';
 
 // SHARED MOCK STATE (Local Storage)
 // This allows testing Admin in Tab 1 and Player in Tab 2 on the same browser.
@@ -19,24 +19,41 @@ function saveMockDB(db) {
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+/**
+ * Fetch with timeout and optional abort controller management
+ * @param {string} url - URL to fetch
+ * @param {Object} options - Fetch options
+ * @param {string} [options.endpointKey] - Optional key for PollingService controller management
+ * @returns {Promise<Response|null>} Response or null if aborted
+ */
 async function fetchWithTimeout(url, options = {}) {
+    const { endpointKey, ...fetchOptions } = options;
+
     // Automatically append 'secret' query parameter if it exists in CONFIG
     if (CONFIG.SECRET) {
         try {
-            const urlObj = new URL(url, window.location.origin); // Handle relative URLs
+            const urlObj = new URL(url, window.location.origin);
             urlObj.searchParams.append('secret', CONFIG.SECRET);
             url = urlObj.toString();
         } catch (e) {
-            // Fallback for weird URLs if necessary, though new URL() usually handles HTTP/HTTPS
             console.warn("Could not append secret to URL", url);
         }
     }
 
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 8000);
+    // Use PollingService controller if endpointKey provided, otherwise create local one
+    let controller;
+    let isManaged = false;
+
+    if (endpointKey) {
+        controller = PollingService.getController(endpointKey);
+        isManaged = true;
+    } else {
+        controller = new AbortController();
+    }
+
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     // Ensure JSON headers for POST
-    const fetchOptions = { ...options };
     if (fetchOptions.method === 'POST') {
         fetchOptions.headers = {
             "Content-Type": "application/json",
@@ -50,10 +67,20 @@ async function fetchWithTimeout(url, options = {}) {
             ...fetchOptions,
             signal: controller.signal
         });
-        clearTimeout(id);
+        clearTimeout(timeoutId);
         return response;
     } catch (e) {
-        clearTimeout(id);
+        clearTimeout(timeoutId);
+
+        // Graceful handling of AbortError
+        if (e.name === 'AbortError') {
+            if (isManaged) {
+                // Expected cancellation from PollingService, return null silently
+                return null;
+            }
+            // Timeout abort, throw with better message
+            throw new Error('Request timeout');
+        }
         throw e;
     }
 }
@@ -113,7 +140,17 @@ export const API = {
 
         const url = new URL(CONFIG.ENDPOINTS.fetchSessionState);
         url.searchParams.append('code', sessionCode);
-        const res = await fetchWithTimeout(url.toString());
+
+        // Use managed controller for polling requests
+        const res = await fetchWithTimeout(url.toString(), {
+            endpointKey: 'fetchSessionState'
+        });
+
+        // Request was aborted (e.g., new request started), return null
+        if (!res) {
+            return null;
+        }
+
         const data = await res.json();
 
         // Unwrap nested D1 result if present (common pattern with some CF bindings)
