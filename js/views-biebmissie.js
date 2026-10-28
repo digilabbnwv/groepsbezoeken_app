@@ -327,6 +327,7 @@ export const BiebMissieViews = {
         const host = content.vault.claimUrl.replace(/^https?:\/\/(www\.)?/, '');
 
         div.innerHTML = `
+            <button id="btn-close-vault" class="vault-close-btn">← Terug naar overzicht</button>
             <div class="bm-reveal-inner">
                 <div class="bm-kicker" style="color: white;">De kluis is open!</div>
                 <h1>Jullie code</h1>

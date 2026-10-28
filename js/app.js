@@ -1081,10 +1081,26 @@ function bindBiebMissieAdmin(view, s) {
 
         PollingService.stopAll();
         render(Views.openVaultAnimation());
-        setTimeout(() => {
+        bindVaultClose();
+        const revealTimer = setTimeout(() => {
             Root.appendChild(BiebMissieViews.vaultReveal(computeVaultCode(content.vault.rows), content));
+            bindVaultClose();
         }, 3200);
+        Root.dataset.revealTimer = revealTimer;
     };
+}
+
+/**
+ * Terug van het kluisscherm naar het beheerdersoverzicht (sessie loopt gewoon door)
+ */
+function bindVaultClose() {
+    Root.querySelectorAll('.vault-close-btn').forEach(btn => {
+        btn.onclick = () => {
+            clearTimeout(Number(Root.dataset.revealTimer));
+            Root.innerHTML = '';
+            startAdminPolling();
+        };
+    });
 }
 
 async function adminLoop() {
@@ -1220,6 +1236,7 @@ async function adminLoop() {
                 if (btn.dataset.action === 'openVault') {
                     // Trigger Open Vault Animation
                     render(Views.openVaultAnimation());
+                    bindVaultClose();
                     // Stop polling when vault opens
                     PollingService.stopAll();
                     return;
