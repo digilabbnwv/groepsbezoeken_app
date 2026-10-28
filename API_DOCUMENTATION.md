@@ -62,6 +62,20 @@ Initializes a new game session.
 **Notes:**
 - `sessionCode` is a 7-character alphanumeric code (format: `ABC1234`)
 - Session is created with empty words array; use `adminUpdateWords` to set words
+- Optional `mode`: `"regulier"` (default) or `"biebmissie"`. A BiebMissie session also needs a `stationConfig`:
+    ```json
+    {
+      "mode": "biebmissie",
+      "stationConfig": {
+        "requiredStations": 3,
+        "stations": [
+          { "id": "YT-A", "capacity": 1, "priority": true, "book": "youtube" },
+          { "id": "SUPER", "capacity": 2 }
+        ]
+      }
+    }
+    ```
+  The response then also contains `mode` and the sanitized `config`.
 
 ---
 
@@ -104,6 +118,7 @@ Retrieves the current state of a session including all teams.
 - `now` is the server timestamp (use for time synchronization)
 - `teams` array is ordered by `animalId`
 - `score` is always included (default: 0)
+- Also returns `mode` and `config` for the session, and `currentStation` + `stationsDone` per team (BiebMissie)
 
 ---
 
@@ -252,6 +267,71 @@ Deletes a session and all associated teams. **Requires ADMIN_SECRET.**
 
 ---
 
+### 7. Claim Station (BiebMissie)
+
+The "verkeersleider": optionally completes the team's current book (station) and assigns the next free one. Only for sessions created with `mode: "biebmissie"`.
+
+*   **URL:** `/api/claimStation`
+*   **Method:** `POST`
+*   **Auth:** `APP_SECRET` + `teamToken`
+*   **Request Body:**
+    ```json
+    {
+      "secret": "YOUR_APP_SECRET",
+      "teamId": "550e8400-e29b-41d4-a716-446655440001",
+      "teamToken": "aB3xY9kLmN2pQ5rS8tU1vW4xY7zA0bC3",
+      "completedStation": "YT-A",
+      "bonus": false
+    }
+    ```
+*   **Response (200):**
+    ```json
+    {
+      "station": "SUPER",
+      "stationsDone": ["YT-A"],
+      "requiredStations": 3,
+      "bonus": false,
+      "wait": false,
+      "finishedRequired": false
+    }
+    ```
+
+**Notes:**
+- Idempotent: a team that is already at a station gets that station back
+- Never assigns a station the team already did, nor another station of the same `book`
+- Never assigns more teams to a station than its `capacity` (atomic, also under concurrent claims)
+- Unvisited `priority` stations go first, then the least busy, then the least visited
+- `station: null` + `wait: true`: all remaining books are taken, try again later
+- `station: null` + `finishedRequired: true`: the team did its required stations; send `bonus: true` for an extra book
+- The team's `finished` flag is set once `requiredStations` are done
+
+---
+
+### 8. Admin Skip Station (BiebMissie)
+
+Emergency brake: marks a team's current station as done so its iPad fetches the next book. **Requires ADMIN_SECRET.**
+
+*   **URL:** `/api/adminSkipStation`
+*   **Method:** `POST`
+*   **Auth:** `ADMIN_SECRET`
+*   **Request Body:**
+    ```json
+    {
+      "secret": "YOUR_ADMIN_SECRET",
+      "sessionCode": "XYZ4829",
+      "teamId": "550e8400-e29b-41d4-a716-446655440001"
+    }
+    ```
+*   **Response (200):**
+    ```json
+    {
+      "ok": true,
+      "stationsDone": ["YT-A", "SUPER"]
+    }
+    ```
+
+---
+
 ## Auto-Purge (Scheduled)
 
 A cron job runs every **Sunday at 22:00 UTC** (≈23:00 Dutch winter time) to automatically clean up old sessions:
@@ -295,6 +375,8 @@ Preflight (OPTIONS) requests are handled automatically.
 | startTime | TEXT | ISO timestamp or null |
 | wordsJson | TEXT | JSON array of 20 words |
 | createdAt | INTEGER | Unix timestamp |
+| mode | TEXT | `regulier` or `biebmissie` (migration 0002) |
+| configJson | TEXT | BiebMissie station config: `{ requiredStations, stations: [{ id, capacity, priority, book }] }` |
 
 ### Teams Table
 | Column | Type | Description |
@@ -312,6 +394,8 @@ Preflight (OPTIONS) requests are handled automatically.
 | finished | INTEGER | 0 or 1 |
 | lastSeen | INTEGER | Unix timestamp |
 | word1, word2 | TEXT | Assigned words |
+| currentStation | TEXT | BiebMissie: station the team is at ('' = none) |
+| stationsDoneJson | TEXT | BiebMissie: JSON array of completed station ids |
 
 **Constraints:**
 - `sessions(sessionCode)` is UNIQUE

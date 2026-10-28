@@ -15,6 +15,8 @@ import {
     updateTeam,
     adminUpdateWords,
     purgeSession,
+    claimStation,
+    adminSkipStation,
     autoPurgeSessions
 } from './handlers.js';
 
@@ -80,6 +82,22 @@ export default {
                     return jsonResponse({ error: 'Invalid secret' }, 401, env);
                 }
                 return await updateTeam(body, env);
+            }
+
+            if (path === '/api/claimStation' && request.method === 'POST') {
+                const body = await request.json();
+                if (!validateSecret(body.secret, url, env)) {
+                    return jsonResponse({ error: 'Invalid secret' }, 401, env);
+                }
+                return await claimStation(body, env);
+            }
+
+            if (path === '/api/adminSkipStation' && request.method === 'POST') {
+                const body = await request.json();
+                if (!validateAdminSecret(body.secret, url, env)) {
+                    return jsonResponse({ error: 'Invalid admin secret' }, 401, env);
+                }
+                return await adminSkipStation(body, env);
             }
 
             if (path === '/api/adminUpdateWords' && request.method === 'POST') {

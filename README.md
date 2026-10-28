@@ -19,6 +19,28 @@ Een interactieve speurtocht voor groepsbezoeken (groep 6), bestaande uit een Spe
   - Offline-capable (hervatten na refresh)
   - Dyslexie-modus switch
 
+## BiebMissie-modus (MediaMasters)
+
+Naast het reguliere groepsbezoek kan de beheerder bij het starten kiezen voor **BiebMissie**. Dan werkt de klas niet met één vragenlijst maar met **boekstations**:
+
+- Elk boek over mediawijsheid is een station met een paar vragen (`content/biebmissie.json`).
+- Een **verkeersleider** in de Worker (`/api/claimStation`) stuurt elk team naar een boek waar nog een exemplaar vrij is. Teams doen 3 verplichte stations; wie eerder klaar is kan een bonusboek pakken.
+- *De YouTube Hack* is gesplitst in twee stations (A en B). Daar staan de 4 vragen uit de officiële BiebMissie-handleiding; die stations krijgen voorrang zodat de antwoorden er zeker komen.
+- Op het grote scherm ziet de beheerder per boek wie er zit, kan een team **doorsturen** (⏭, noodrem) en kraakt de klas samen de **code** in het codeformulier. Daarna verschijnen de code, de link naar biebmissie.nl en de hersenspinsels.
+- Het hele BiebMissie-scherm gebruikt een eigen kleurenthema (`css/biebmissie.css`).
+
+**Vragen invullen:** gebruik het Excel-invulsjabloon en zet het om met
+
+```bash
+python tools/xlsx_naar_biebmissie.py BiebMissie-vragen-invulsjabloon.xlsx
+```
+
+Het script controleert onder meer of de kluisantwoorden in de vakjes van het codeformulier passen. Zolang `content/biebmissie.json` nog `"placeholder": true` bevat, toont het beheerdersscherm een waarschuwing.
+
+**Database:** de modus vraagt om migratie `0002_biebmissie.sql`. Voer die uit **vóór** je de nieuwe Worker deployt (`npm run db:migrate:biebmissie:remote`); de nieuwe Worker leest kolommen die zonder migratie niet bestaan.
+
+**Uitproberen zonder backend:** voeg `?mock=1` toe aan de URL. Beheerder en spelers delen dan een database in de localStorage van de browser (één tabblad per team).
+
 ## Architectuur
 
 ```
