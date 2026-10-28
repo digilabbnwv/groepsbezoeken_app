@@ -607,6 +607,12 @@ export const Views = {
 
         div.appendChild(img);
 
+        const btnClose = document.createElement('button');
+        btnClose.id = 'btn-close-vault';
+        btnClose.className = 'vault-close-btn';
+        btnClose.textContent = '← Terug naar overzicht';
+        div.appendChild(btnClose);
+
         // Sound effect?
 
         // Trigger animation
