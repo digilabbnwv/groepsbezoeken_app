@@ -10,6 +10,8 @@
         "deploy": "npx wrangler deploy",
         "db:migrate:local": "npx wrangler d1 execute groepsbezoeken-db --local --file=./migrations/0001_init.sql",
         "db:migrate:remote": "npx wrangler d1 execute groepsbezoeken-db --remote --file=./migrations/0001_init.sql",
+        "db:migrate:biebmissie:local": "npx wrangler d1 execute groepsbezoeken-db --local --file=./migrations/0002_biebmissie.sql",
+        "db:migrate:biebmissie:remote": "npx wrangler d1 execute groepsbezoeken-db --remote --file=./migrations/0002_biebmissie.sql",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:ui": "vitest --ui",

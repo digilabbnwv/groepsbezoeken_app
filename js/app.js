@@ -3,30 +3,64 @@ import { API } from './api.js';
 import { ANIMALS } from './animals.js';
 import { Storage, seededShuffle, stringToSeed, formatTime } from './utils.js';
 import { Views } from './views.js';
+import { BiebMissieViews, rowValue } from './views-biebmissie.js';
 import { CONFIG } from './config.js';
 import { PollingService } from './polling.js';
+import {
+    MODES,
+    buildStationConfig,
+    isOpenAnswerCorrect,
+    computeVaultCode,
+    normalizeAnswer
+} from './stations.js';
 
 // Global App State
 const State = {
     questions: [],
+    content: null, // BiebMissie content (content/biebmissie.json), lazy geladen
     // Player
     player: {
         sessionCode: null,
         teamId: null,
         teamToken: null,
         info: null, // { animalId, teamName... }
+        mode: MODES.REGULIER,
         questionsOrder: [], // shuffled indices
         currentQIndex: 0,
         currentAttempts: 0,
         hintsUsedForQ: 0,
-        tempShuffleMatch: null // store shuffled indices for match question
+        tempShuffleMatch: null, // store shuffled indices for match question
+        // BiebMissie
+        phase: null, // 'intro' | 'question' | 'waiting' | 'finished'
+        currentStation: '',
+        pendingComplete: '', // afgerond station dat de server nog niet bevestigde
+        stationsDone: [],
+        requiredStations: 0,
+        isBonus: false,
+        noMoreBonus: false,
+        totalAnswered: 0,
+        vaultFinds: []
     },
     // Admin
     admin: {
         session: null,
-        teams: []
+        teams: [],
+        startedAt: null
     }
 };
+
+// In mock-modus delen alle tabbladen dezelfde localStorage; geef elk tabblad een eigen spelerssessie
+const PLAYER_KEY = CONFIG.MOCK_MODE ? `player_session_${mockTabId()}` : 'player_session';
+const ADMIN_KEY = 'admin_session';
+
+function mockTabId() {
+    let id = sessionStorage.getItem('mock_tab');
+    if (!id) {
+        id = Math.random().toString(36).slice(2, 8);
+        sessionStorage.setItem('mock_tab', id);
+    }
+    return id;
+}
 
 const Root = document.getElementById('root');
 // pollInterval is now managed by PollingService
@@ -95,9 +129,10 @@ function render(element) {
 // ==========================================
 async function startPlayer() {
     // Check LocalStorage for resume
-    const saved = Storage.get('player_session');
+    const saved = Storage.get(PLAYER_KEY);
 
     if (saved && saved.sessionCode && saved.teamId) {
+        applyTheme(saved.mode);
         // Ask to resume
         let displayTeamName = saved.teamName || 'Je Team';
         if (saved.info && saved.info.animalId) {
@@ -106,15 +141,24 @@ async function startPlayer() {
         }
 
         render(Views.playerRejoin(displayTeamName,
-            () => {
+            async () => {
                 // Resume
                 State.player = { ...State.player, ...saved };
+                if (State.player.mode === MODES.BIEBMISSIE) {
+                    try {
+                        await loadBiebMissieContent();
+                    } catch (e) {
+                        alert("Kon de BiebMissie-vragen niet laden.");
+                        return;
+                    }
+                }
                 // Refresh state from API
                 enterGameLoop();
             },
             () => {
                 // Clear and new
-                Storage.remove('player_session');
+                Storage.remove(PLAYER_KEY);
+                applyTheme(MODES.REGULIER);
                 startPlayerJoin();
             }
         ));
@@ -128,8 +172,14 @@ function startPlayerJoin() {
         // 1. Check if session exists (by fetching state)
         try {
             const session = await API.fetchSessionState(code);
+            if (!session || session.error) throw new Error(session ? session.error : 'Geen antwoord');
             // Session is assumed running or waiting. 'ended' is deprecated.
             State.player.sessionCode = code;
+            State.player.mode = session.mode === MODES.BIEBMISSIE ? MODES.BIEBMISSIE : MODES.REGULIER;
+            if (State.player.mode === MODES.BIEBMISSIE) {
+                await loadBiebMissieContent();
+            }
+            applyTheme(State.player.mode);
             startAvatarSelection(code);
         } catch (e) {
             alert("Sessie niet gevonden of netwerkfout.");
@@ -178,6 +228,15 @@ async function startAvatarSelection(code) {
                 State.player.teamToken = team.teamToken;
                 State.player.info = team; // color, name, animalId
 
+                if (State.player.mode === MODES.BIEBMISSIE) {
+                    // Geen vaste vragenlijst: de verkeersleider wijst boeken toe
+                    State.player.questionsOrder = [];
+                    State.player.currentQIndex = 0;
+                    savePlayer();
+                    enterGameLoop();
+                    return;
+                }
+
                 // Seeded Shuffle of Questions
                 // Seed = sessionCode + teamId
                 const seedStr = code + team.teamId;
@@ -186,7 +245,8 @@ async function startAvatarSelection(code) {
                 State.player.currentQIndex = team.progress || 0; // resume progress
 
                 // Save to Storage
-                Storage.set('player_session', {
+                Storage.set(PLAYER_KEY, {
+                    mode: MODES.REGULIER,
                     sessionCode: code,
                     teamId: team.teamId,
                     teamToken: team.teamToken,
@@ -207,27 +267,41 @@ async function startAvatarSelection(code) {
 }
 
 function enterGameLoop() {
+    const isBM = State.player.mode === MODES.BIEBMISSIE;
+
     // Start Polling using PollingService
     PollingService.startInterval('playerPolling', async () => {
         const s = await API.fetchSessionState(State.player.sessionCode);
         // Only process if we got a valid response (not aborted)
-        if (s) {
-            // Future: handle pause/resume states here
+        if (s && isBM) {
+            handleBiebMissiePoll(s);
         }
     }, CONFIG.POLLING_INTERVAL);
+
+    if (isBM) {
+        resumeBiebMissie();
+        return;
+    }
 
     showCurrentQuestion();
 }
 
 function showCurrentQuestion(animOverride = null) {
     const p = State.player;
-    if (p.currentQIndex >= 12) {
-        showFinished();
+    const station = p.mode === MODES.BIEBMISSIE ? getStation(p.currentStation) : null;
+    const total = station ? station.questions.length : p.questionsOrder.length;
+
+    if (p.currentQIndex >= total) {
+        if (station) finishStation();
+        else showFinished();
         return;
     }
 
-    const qIdx = p.questionsOrder[p.currentQIndex];
-    const question = State.questions[qIdx]; // Get actual question object
+    const question = station
+        ? station.questions[p.currentQIndex]
+        : State.questions[p.questionsOrder[p.currentQIndex]]; // Get actual question object
+    // Kluisvragen kun je niet overslaan: de klas heeft het antwoord nodig
+    const mustSolve = !!question.vaultRow;
 
     // Clone question to not mutate global
     const qView = JSON.parse(JSON.stringify(question));
@@ -268,13 +342,14 @@ function showCurrentQuestion(animOverride = null) {
 
     const view = Views.playerGame(
         qView,
-        `${p.currentQIndex + 1}/12`,
+        `${p.currentQIndex + 1}/${total}`,
         p.currentAttempts,
-        2,
+        mustSolve ? '∞' : 2,
         null, // onAnswer (unused)
         p.info.timePenaltySeconds,
         p.info, // Pass team data for header
-        animOverride || (p.currentAttempts > 0 ? 'animate__headShake' : 'animate__fadeInRight') // Default Animation Logic
+        animOverride || (p.currentAttempts > 0 ? 'animate__headShake' : 'animate__fadeInRight'), // Default Animation Logic
+        station
     );
 
     render(view);
@@ -455,6 +530,17 @@ function showCurrentQuestion(animOverride = null) {
             const isCorrect = JSON.stringify(currentOrder) === JSON.stringify(question.correctOrder);
             handleResult(isCorrect, question);
         };
+    } else if (question.type === 'open') {
+        const input = view.querySelector('#open-answer');
+        const btnCheck = view.querySelector('#btn-submit-open');
+        input.oninput = () => { btnCheck.disabled = !input.value.trim(); };
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter' && input.value.trim()) btnCheck.click();
+        };
+        btnCheck.onclick = () => {
+            btnCheck.disabled = true;
+            handleResult(isOpenAnswerCorrect(input.value, question.answers), question);
+        };
     }
 
     // Hint
@@ -489,15 +575,40 @@ function checkAnswer(selectedIndex, question) {
 
 function handleResult(isCorrect, question) {
     const feedback = document.getElementById('feedback');
+    const mustSolve = !!question.vaultRow;
     feedback.innerHTML = isCorrect ? '<div>👍 Goed!</div>' : '<div>👎 Helaas...</div>';
     feedback.classList.add('show');
 
     // Logic
     if (isCorrect) {
+        if (mustSolve) {
+            recordVaultFind(question);
+            feedback.innerHTML = '<div style="text-align: center;">👍 Goed!<br><span style="font-size: 1.5rem;">🔑 Dit antwoord is nodig voor de kluis!</span></div>';
+        }
         setTimeout(() => {
             feedback.classList.remove('show');
             nextQuestion(true);
-        }, 1500);
+        }, mustSolve ? 2500 : 1500);
+    } else if (mustSolve) {
+        // Kluisvraag: blijf proberen, na 2 fouten met tip (en eenmalig strafseconden)
+        State.player.currentAttempts++;
+        if (State.player.currentAttempts === 2) {
+            State.player.info.timePenaltySeconds += CONFIG.PENALTY_SECONDS;
+            API.updateTeam({
+                teamId: State.player.teamId,
+                teamToken: State.player.teamToken,
+                sessionCode: State.player.sessionCode,
+                timePenaltySeconds: State.player.info.timePenaltySeconds
+            });
+        }
+        const showHint = State.player.currentAttempts >= 2 && question.hint;
+        if (showHint) {
+            feedback.innerHTML = `<div style="text-align: center; padding: 20px;">👎 Helaas...<br><span style="font-size: 1.4rem;">💡 Tip: ${question.hint}</span></div>`;
+        }
+        setTimeout(() => {
+            feedback.classList.remove('show');
+            showCurrentQuestion('animate__pulse');
+        }, showHint ? 4000 : 1500);
     } else {
         State.player.currentAttempts++;
         if (State.player.currentAttempts >= 2) {
@@ -531,6 +642,19 @@ function nextQuestion(success) {
     p.currentAttempts = 0;
     p.hintsUsedForQ = 0;
 
+    if (p.mode === MODES.BIEBMISSIE) {
+        p.totalAnswered++;
+        API.updateTeam({
+            teamId: p.teamId,
+            teamToken: p.teamToken,
+            sessionCode: p.sessionCode,
+            progress: p.totalAnswered
+        });
+        savePlayer();
+        showCurrentQuestion();
+        return;
+    }
+
     // Sync Progress
     API.updateTeam({
         teamId: p.teamId,
@@ -540,10 +664,10 @@ function nextQuestion(success) {
     });
 
     // Storage Update
-    const s = Storage.get('player_session');
+    const s = Storage.get(PLAYER_KEY);
     if (s) {
         s.currentQIndex = p.currentQIndex;
-        Storage.set('player_session', s);
+        Storage.set(PLAYER_KEY, s);
     }
 
     showCurrentQuestion();
@@ -601,20 +725,366 @@ async function showFinished() {
 }
 
 // ==========================================
+// BIEBMISSIE (player)
+// ==========================================
+async function loadBiebMissieContent() {
+    if (State.content) return State.content;
+    const res = await fetch('content/biebmissie.json');
+    if (!res.ok) throw new Error('content/biebmissie.json niet gevonden');
+    State.content = await res.json();
+    return State.content;
+}
+
+function getStation(id) {
+    if (!State.content || !id) return null;
+    return State.content.stations.find(s => s.id === id) || null;
+}
+
+function applyTheme(mode) {
+    document.body.classList.toggle('theme-biebmissie', mode === MODES.BIEBMISSIE);
+}
+
+function savePlayer() {
+    const p = State.player;
+    Storage.set(PLAYER_KEY, {
+        mode: p.mode,
+        sessionCode: p.sessionCode,
+        teamId: p.teamId,
+        teamToken: p.teamToken,
+        teamName: p.info && p.info.teamName,
+        info: p.info,
+        questionsOrder: p.questionsOrder,
+        currentQIndex: p.currentQIndex,
+        phase: p.phase,
+        currentStation: p.currentStation,
+        pendingComplete: p.pendingComplete,
+        stationsDone: p.stationsDone,
+        requiredStations: p.requiredStations,
+        isBonus: p.isBonus,
+        noMoreBonus: p.noMoreBonus,
+        totalAnswered: p.totalAnswered,
+        vaultFinds: p.vaultFinds
+    });
+}
+
+function recordVaultFind(question) {
+    const p = State.player;
+    const row = State.content.vault.rows.find(r => r.row === question.vaultRow);
+    if (!row || p.vaultFinds.some(f => f.row === row.row)) return;
+    p.vaultFinds.push({ row: row.row, label: row.label, answer: normalizeAnswer(row.answer).toUpperCase() });
+    savePlayer();
+}
+
+function resumeBiebMissie() {
+    const p = State.player;
+    if (p.phase === 'finished') return showBiebMissieFinished();
+    if (p.currentStation && getStation(p.currentStation)) {
+        if (p.phase === 'question') return showCurrentQuestion();
+        return showStationIntro();
+    }
+    claimNext();
+}
+
+let claimInFlight = false;
+
+/**
+ * Vraag de verkeersleider om het volgende boek (en meld eventueel een afgerond boek).
+ * @param {Object} [opts] - { bonus }
+ */
+async function claimNext(opts = {}) {
+    if (claimInFlight) return;
+    claimInFlight = true;
+    const p = State.player;
+
+    let r;
+    try {
+        r = await API.claimStation({
+            teamId: p.teamId,
+            teamToken: p.teamToken,
+            sessionCode: p.sessionCode,
+            completedStation: p.pendingComplete || undefined,
+            bonus: opts.bonus || p.isBonus || undefined
+        });
+    } catch (e) {
+        // Netwerkfout: wachtscherm, de polling probeert het opnieuw
+        console.warn("claimStation mislukt, opnieuw bij volgende poll", e);
+        claimInFlight = false;
+        if (p.phase !== 'waiting') {
+            p.phase = 'waiting';
+            savePlayer();
+            render(BiebMissieViews.waiting(p.info));
+        }
+        return;
+    }
+    claimInFlight = false;
+
+    p.pendingComplete = '';
+    p.stationsDone = r.stationsDone || [];
+    p.requiredStations = r.requiredStations || State.content.requiredStations;
+
+    if (r.station) {
+        if (r.station !== p.currentStation) {
+            p.currentStation = r.station;
+            p.currentQIndex = 0;
+            p.currentAttempts = 0;
+            p.phase = 'intro';
+        }
+        p.isBonus = !!r.bonus;
+        savePlayer();
+        if (p.phase === 'question') showCurrentQuestion();
+        else showStationIntro();
+    } else if (r.wait) {
+        p.currentStation = '';
+        const wasWaiting = p.phase === 'waiting';
+        p.phase = 'waiting';
+        savePlayer();
+        if (!wasWaiting) render(BiebMissieViews.waiting(p.info));
+    } else {
+        p.currentStation = '';
+        if (opts.bonus || p.isBonus) p.noMoreBonus = true;
+        p.isBonus = false;
+        p.phase = 'finished';
+        savePlayer();
+        showBiebMissieFinished();
+    }
+}
+
+function showStationIntro() {
+    const p = State.player;
+    const station = getStation(p.currentStation);
+    render(BiebMissieViews.stationIntro(
+        station,
+        p.info,
+        Math.min(p.stationsDone.length + 1, p.requiredStations),
+        p.requiredStations,
+        p.isBonus,
+        () => {
+            p.phase = 'question';
+            savePlayer();
+            showCurrentQuestion();
+        },
+        p.stationsDone.length > 0
+    ));
+}
+
+function finishStation() {
+    const p = State.player;
+    p.pendingComplete = p.currentStation;
+    p.currentStation = '';
+    p.currentQIndex = 0;
+    p.phase = 'intro';
+    savePlayer();
+    claimNext();
+}
+
+function showBiebMissieFinished() {
+    const p = State.player;
+    render(BiebMissieViews.finished(p.info, p.vaultFinds, !p.noMoreBonus, () => {
+        p.isBonus = true;
+        claimNext({ bonus: true });
+    }));
+}
+
+/**
+ * Verwerkt de periodieke sessie-update op de iPad:
+ * - wachtend team: opnieuw een boek proberen
+ * - door de beheerder doorgestuurd team: volgende boek ophalen
+ */
+function handleBiebMissiePoll(session) {
+    const p = State.player;
+    if (p.phase === 'waiting') {
+        claimNext();
+        return;
+    }
+
+    const me = (session.teams || []).find(t => t.teamId === p.teamId);
+    if (!me || !p.currentStation) return;
+
+    const skipped = me.currentStation !== p.currentStation && (me.stationsDone || []).includes(p.currentStation);
+    if (skipped) {
+        p.currentStation = '';
+        p.currentQIndex = 0;
+        p.phase = 'intro';
+        savePlayer();
+        render(BiebMissieViews.redirected());
+        setTimeout(() => claimNext(), 2500);
+    }
+}
+
+// ==========================================
 // ADMIN CONTROLLER
 // ==========================================
 function startAdmin() {
-    render(Views.adminSetup(async (name) => {
+    const saved = Storage.get(ADMIN_KEY);
+    if (saved && saved.session && saved.session.sessionCode) {
+        applyTheme(saved.session.mode);
+        render(Views.adminResume(saved.session.sessionName, saved.session.sessionCode,
+            () => {
+                State.admin.session = saved.session;
+                State.admin.startedAt = saved.startedAt || null;
+                startAdminPolling();
+            },
+            () => {
+                Storage.remove(ADMIN_KEY);
+                applyTheme(MODES.REGULIER);
+                showAdminSetup();
+            }
+        ));
+        return;
+    }
+    showAdminSetup();
+}
+
+function showAdminSetup() {
+    render(Views.adminSetup(async (name, mode = MODES.REGULIER) => {
         try {
-            const session = await API.createSession(name);
-            State.admin.session = session;
-            adminLoop();
-            // Start polling using PollingService
-            PollingService.startInterval('adminPolling', adminLoop, CONFIG.POLLING_INTERVAL);
+            let stationConfig = null;
+            if (mode === MODES.BIEBMISSIE) {
+                const content = await loadBiebMissieContent();
+                stationConfig = buildStationConfig(content);
+            }
+            const session = await API.createSession(name, mode, stationConfig);
+            State.admin.session = { mode, ...session };
+            State.admin.startedAt = Date.now();
+            Storage.set(ADMIN_KEY, { session: State.admin.session, startedAt: State.admin.startedAt });
+            startAdminPolling();
         } catch (e) {
             alert("Fout bij maken sessie: " + e.message);
         }
     }));
+}
+
+function startAdminPolling() {
+    adminLoop();
+    // Start polling using PollingService
+    PollingService.startInterval('adminPolling', adminLoop, CONFIG.POLLING_INTERVAL);
+}
+
+function bindPurgeButton(view, s) {
+    const btnPurge = view.querySelector('#btn-purge');
+    if (!btnPurge) return;
+    btnPurge.onclick = async () => {
+        const input = prompt("Typ de sessiecode na om te wissen (" + s.sessionCode + "):");
+        if (input === s.sessionCode) {
+            try {
+                await API.purgeSession({ sessionCode: s.sessionCode });
+                Storage.remove(ADMIN_KEY);
+                Storage.remove(vaultKey(s));
+                alert("Sessie gewist.");
+                location.reload();
+            } catch (e) { alert("Fout: " + e.message); }
+        }
+    };
+}
+
+// ==========================================
+// BIEBMISSIE (admin)
+// ==========================================
+function vaultKey(s) {
+    return `bm_vault_${s.sessionCode}`;
+}
+
+function bindBiebMissieAdmin(view, s) {
+    const content = State.content;
+    bindPurgeButton(view, s);
+
+    view.querySelector('#btn-show-answers').onclick = () => {
+        const lines = content.vault.rows.map(r => `${r.label}: ${normalizeAnswer(r.answer).toUpperCase()}`);
+        alert(lines.join('\n') + `\n\nCode: ${computeVaultCode(content.vault.rows)}`);
+    };
+
+    // Noodrem: team doorsturen
+    view.querySelector('#team-list').addEventListener('click', async (e) => {
+        const btn = e.target.closest('.bm-skip');
+        if (!btn) return;
+        if (!confirm("Dit team doorsturen naar het volgende boek? Het huidige boek telt dan als klaar.")) return;
+        btn.disabled = true;
+        try {
+            await API.adminSkipStation({ sessionCode: s.sessionCode, teamId: btn.dataset.teamId });
+            adminLoop();
+        } catch (err) {
+            alert("Doorsturen mislukt: " + err.message);
+            btn.disabled = false;
+        }
+    });
+
+    // Codeformulier
+    const letters = Array.from(view.querySelectorAll('.bm-letter:not([disabled])'));
+    const saved = Storage.get(vaultKey(s)) || {};
+    letters.forEach(inp => {
+        const key = `${inp.dataset.row}-${inp.dataset.idx}`;
+        if (saved[key]) inp.value = saved[key];
+    });
+
+    const btnOpen = view.querySelector('#btn-open-vault');
+
+    const validate = () => {
+        let allCorrect = true;
+        const values = {};
+        content.vault.rows.forEach(row => {
+            const rowEl = view.querySelector(`.bm-code-row[data-row="${row.row}"]`);
+            const inputs = rowEl.querySelectorAll('.bm-letter');
+            const target = normalizeAnswer(row.answer);
+            const value = rowValue(inputs);
+            const correct = row.given || value === target;
+            const full = Array.from(inputs).every(i => i.value);
+
+            rowEl.classList.toggle('correct', correct);
+            rowEl.classList.toggle('wrong', !correct && full);
+            if (!correct) allCorrect = false;
+
+            const box = view.querySelector(`.bm-code-box[data-row="${row.row}"]`);
+            box.textContent = correct ? target.charAt(row.highlight - 1).toUpperCase() : '';
+            box.classList.toggle('filled', correct);
+
+            inputs.forEach(i => { if (!row.given) values[`${i.dataset.row}-${i.dataset.idx}`] = i.value; });
+        });
+
+        Storage.set(vaultKey(s), values);
+        btnOpen.disabled = !allCorrect;
+        btnOpen.classList.toggle('ready', allCorrect);
+        btnOpen.textContent = allCorrect ? '🔓 Open de kluis' : '🔒 Open de kluis';
+    };
+
+    letters.forEach((inp, i) => {
+        inp.oninput = () => {
+            const chars = inp.value.replace(/\s/g, '').toUpperCase().split('');
+            if (chars.length <= 2) {
+                // Gewoon typen (ook over een gevuld vakje heen): laatste letter telt
+                inp.value = chars.slice(-1).join('');
+                if (inp.value && letters[i + 1]) letters[i + 1].focus();
+            } else {
+                // Plakken of snel typen: verdeel over de volgende vakjes
+                chars.forEach((ch, k) => { if (letters[i + k]) letters[i + k].value = ch; });
+                const next = letters[Math.min(i + chars.length, letters.length - 1)];
+                next.focus();
+            }
+            validate();
+        };
+        inp.onkeydown = (e) => {
+            if (e.key === 'Backspace' && !inp.value && letters[i - 1]) {
+                letters[i - 1].focus();
+                letters[i - 1].value = '';
+                validate();
+                e.preventDefault();
+            }
+        };
+        inp.onfocus = () => inp.select();
+    });
+    validate();
+
+    btnOpen.onclick = () => {
+        const teams = State.admin.teams || [];
+        const required = content.requiredStations;
+        const notDone = teams.filter(t => !t.finished && (t.stationsDone || []).length < required);
+        if (notDone.length && !confirm(`Nog ${notDone.length} team(s) niet klaar. Toch de kluis openen?`)) return;
+
+        PollingService.stopAll();
+        render(Views.openVaultAnimation());
+        setTimeout(() => {
+            Root.appendChild(BiebMissieViews.vaultReveal(computeVaultCode(content.vault.rows), content));
+        }, 3200);
+    };
 }
 
 async function adminLoop() {
@@ -634,6 +1104,21 @@ async function adminLoop() {
             }
         } catch (fetchErr) {
             console.warn("Network/API error polling session, showing cached/created state.", fetchErr);
+        }
+
+        applyTheme(s.mode);
+
+        if (s.mode === MODES.BIEBMISSIE) {
+            await loadBiebMissieContent();
+            if (document.getElementById('admin-screen')) {
+                BiebMissieViews.adminDashboardUpdate(s, State.admin.teams || [], State.content);
+            } else {
+                const view = BiebMissieViews.adminDashboard(s, State.admin.teams || [], State.content);
+                render(view);
+                bindBiebMissieAdmin(view, s);
+            }
+            updateAdminTimer(s);
+            return;
         }
 
         // Render or Update Dashboard
@@ -749,44 +1234,37 @@ async function adminLoop() {
             };
 
             // Purge Handler
-            const btnPurge = view.querySelector('#btn-purge');
-            if (btnPurge) {
-                btnPurge.onclick = async () => {
-                    const input = prompt("Typ de sessiecode na om te wissen (" + s.sessionCode + "):");
-                    if (input === s.sessionCode) {
-                        try {
-                            await API.purgeSession({ sessionCode: s.sessionCode });
-                            alert("Sessie gewist.");
-                            location.reload();
-                        } catch (e) { alert("Fout: " + e.message); }
-                    }
-                };
-            }
+            bindPurgeButton(view, s);
         }
 
         // Update Timer & Status (Always, even if editing)
-        const t = document.getElementById('admin-timer');
-        const st = document.getElementById('admin-status');
-
-        if (s.startTime) {
-            const start = new Date(s.startTime).getTime();
-            const now = new Date().getTime(); // slightly out of sync with server 'now' maybe, but good for UI
-            const diff = Math.floor((now - start) / 1000);
-
-            if (t) {
-                t.textContent = formatTime(diff);
-                if (diff > 45 * 60) {
-                    t.style.color = 'var(--danger)';
-                } else {
-                    t.style.color = 'inherit';
-                }
-            }
-        } else if (t) {
-            t.textContent = "00:00";
-            t.style.color = 'inherit';
-        }
+        updateAdminTimer(s);
 
     } catch (e) {
         console.error("Admin poll error", e);
+    }
+}
+
+function updateAdminTimer(s) {
+    const t = document.getElementById('admin-timer');
+    // Server zet startTime (nog) niet; val terug op het moment dat de sessie hier gestart werd
+    const startRef = s.startTime || State.admin.startedAt;
+
+    if (startRef) {
+        const start = new Date(startRef).getTime();
+        const now = new Date().getTime(); // slightly out of sync with server 'now' maybe, but good for UI
+        const diff = Math.floor((now - start) / 1000);
+
+        if (t) {
+            t.textContent = formatTime(diff);
+            if (diff > 45 * 60) {
+                t.style.color = 'var(--danger)';
+            } else {
+                t.style.color = 'inherit';
+            }
+        }
+    } else if (t) {
+        t.textContent = "00:00";
+        t.style.color = 'inherit';
     }
 }

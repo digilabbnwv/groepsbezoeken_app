@@ -1,5 +1,6 @@
 import { CONFIG } from './config.js';
 import { PollingService } from './polling.js';
+import { MODES, rankStations } from './stations.js';
 
 // SHARED MOCK STATE (Local Storage)
 // This allows testing Admin in Tab 1 and Player in Tab 2 on the same browser.
@@ -18,6 +19,49 @@ function saveMockDB(db) {
 }
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Mock-versie van de verkeersleider (zelfde regels als de Worker, zonder database)
+ */
+async function mockClaimStation({ teamId, completedStation, bonus = false }) {
+    await delay(300);
+    const db = getMockDB();
+    const team = db.teams[teamId];
+    if (!db.session || !team) throw new Error("Team niet gevonden");
+
+    const { stations = [], requiredStations } = db.session.config || {};
+    const required = requiredStations || stations.length;
+    const done = team.stationsDone || [];
+
+    if (completedStation && !done.includes(completedStation)) done.push(completedStation);
+    if (completedStation && team.currentStation === completedStation) team.currentStation = '';
+
+    const requiredReached = done.length >= required;
+    const base = { station: null, stationsDone: done, requiredStations: required, bonus: false, wait: false, finishedRequired: requiredReached };
+    team.stationsDone = done;
+    team.finished = requiredReached;
+
+    if (team.currentStation) {
+        saveMockDB(db);
+        return { ...base, station: team.currentStation, bonus: requiredReached };
+    }
+    if (requiredReached && !bonus) {
+        saveMockDB(db);
+        return base;
+    }
+
+    const { candidates, remaining } = rankStations({
+        stations,
+        teams: Object.values(db.teams),
+        teamId,
+        stationsDone: done
+    });
+    team.currentStation = candidates[0] || '';
+    saveMockDB(db);
+
+    if (team.currentStation) return { ...base, station: team.currentStation, bonus: requiredReached };
+    return { ...base, wait: remaining.length > 0, finishedRequired: requiredReached || remaining.length === 0 };
+}
 
 /**
  * Fetch with timeout and optional abort controller management
@@ -91,7 +135,7 @@ async function fetchWithTimeout(url, options = {}) {
 }
 
 export const API = {
-    async createSession(sessionName) {
+    async createSession(sessionName, mode = MODES.REGULIER, stationConfig = null) {
         if (!CONFIG.ENDPOINTS.createSession) {
             console.log("MOCK: createSession");
             await delay(500);
@@ -103,7 +147,9 @@ export const API = {
                 sessionCode: "ABC1234",
 
                 startTime: new Date().toISOString(),
-                words: Array(20).fill("")
+                words: Array(20).fill(""),
+                mode,
+                config: stationConfig || {}
             };
             saveMockDB(db);
             return db.session;
@@ -112,7 +158,7 @@ export const API = {
         // Real impl
         const res = await fetchWithTimeout(CONFIG.ENDPOINTS.createSession, {
             method: 'POST',
-            body: JSON.stringify({ secret: CONFIG.SECRET, sessionName })
+            body: JSON.stringify({ secret: CONFIG.SECRET, sessionName, mode, stationConfig })
         });
         const data = await res.json();
 
@@ -195,7 +241,9 @@ export const API = {
                 progress: 0,
                 hintsUsed: 0,
                 timePenaltySeconds: 0,
-                lastSeen: new Date().toISOString()
+                lastSeen: new Date().toISOString(),
+                currentStation: '',
+                stationsDone: []
             };
 
             db.teams[teamId] = newTeam;
@@ -280,6 +328,55 @@ export const API = {
         const adminSecret = CONFIG.ADMIN_SECRET || CONFIG.SECRET;
 
         const res = await fetchWithTimeout(url.toString(), {
+            method: 'POST',
+            useAdminSecret: true,
+            body: JSON.stringify({ secret: adminSecret, ...payload })
+        });
+        return res.json();
+    },
+
+    /**
+     * BiebMissie: rond optioneel een station af en vraag het volgende vrije boek op.
+     * @param {Object} payload - { teamId, teamToken, sessionCode, completedStation?, bonus? }
+     */
+    async claimStation(payload) {
+        if (!CONFIG.ENDPOINTS.claimStation) {
+            return mockClaimStation(payload);
+        }
+
+        const url = new URL(CONFIG.ENDPOINTS.claimStation);
+        if (payload.sessionCode) url.searchParams.append('code', payload.sessionCode);
+
+        const res = await fetchWithTimeout(url.toString(), {
+            method: 'POST',
+            body: JSON.stringify({ secret: CONFIG.SECRET, ...payload })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || `Server fout: ${res.status}`);
+        }
+        return data;
+    },
+
+    /**
+     * BiebMissie noodrem: stuur een team door naar het volgende boek.
+     * @param {Object} payload - { sessionCode, teamId }
+     */
+    async adminSkipStation(payload) {
+        if (!CONFIG.ENDPOINTS.adminSkipStation) {
+            const db = getMockDB();
+            const t = db.teams[payload.teamId];
+            if (t && t.currentStation) {
+                t.stationsDone = [...(t.stationsDone || []), t.currentStation];
+                t.currentStation = '';
+                t.finished = t.stationsDone.length >= (db.session.config.requiredStations || 0);
+                saveMockDB(db);
+            }
+            return { ok: true };
+        }
+
+        const adminSecret = CONFIG.ADMIN_SECRET || CONFIG.SECRET;
+        const res = await fetchWithTimeout(CONFIG.ENDPOINTS.adminSkipStation, {
             method: 'POST',
             useAdminSecret: true,
             body: JSON.stringify({ secret: adminSecret, ...payload })

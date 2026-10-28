@@ -11,17 +11,41 @@ import {
     getWordsForAnimal,
     jsonResponse
 } from './utils.js';
+import { MODES, rankStations, sanitizeStationConfig } from '../../js/stations.js';
+
+/**
+ * Parse JSON column with fallback
+ */
+function parseJson(value, fallback) {
+    try {
+        return JSON.parse(value || '');
+    } catch (e) {
+        return fallback;
+    }
+}
 
 /**
  * POST /api/createSession
  * Creates a new game session
- * 
- * @param {Object} body - { secret, sessionName }
+ *
+ * @param {Object} body - { secret, sessionName, mode?, stationConfig? }
  * @param {Object} env - Environment with DB binding
  * @returns {Response} - Session object
  */
 export async function createSession(body, env) {
-    const { sessionName = 'Nieuwe Sessie' } = body;
+    const { sessionName = 'Nieuwe Sessie', mode = MODES.REGULIER, stationConfig } = body;
+
+    if (mode !== MODES.REGULIER && mode !== MODES.BIEBMISSIE) {
+        return jsonResponse({ error: 'Unknown mode' }, 400, env);
+    }
+
+    let config = {};
+    if (mode === MODES.BIEBMISSIE) {
+        config = sanitizeStationConfig(stationConfig);
+        if (!config) {
+            return jsonResponse({ error: 'Invalid stationConfig' }, 400, env);
+        }
+    }
 
     // Generate unique identifiers
     const sessionId = generateUUID();
@@ -32,14 +56,16 @@ export async function createSession(body, env) {
     while (attempts < 5) {
         try {
             await env.DB.prepare(
-                `INSERT INTO sessions (sessionId, sessionName, sessionCode, wordsJson, createdAt)
-                 VALUES (?, ?, ?, ?, ?)`
+                `INSERT INTO sessions (sessionId, sessionName, sessionCode, wordsJson, createdAt, mode, configJson)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`
             ).bind(
                 sessionId,
                 sessionName,
                 sessionCode,
                 '[]', // Empty words initially
-                Math.floor(Date.now() / 1000)
+                Math.floor(Date.now() / 1000),
+                mode,
+                JSON.stringify(config)
             ).run();
 
             break; // Success
@@ -60,7 +86,9 @@ export async function createSession(body, env) {
         sessionName,
         sessionCode,
         startTime: null,
-        words: []
+        words: [],
+        mode,
+        config
     }, 200, env);
 }
 
@@ -75,8 +103,8 @@ export async function createSession(body, env) {
 export async function fetchSessionState(code, env) {
     // Fetch session
     const session = await env.DB.prepare(
-        `SELECT sessionId, sessionName, sessionCode, startTime, wordsJson 
-         FROM sessions 
+        `SELECT sessionId, sessionName, sessionCode, startTime, wordsJson, mode, configJson
+         FROM sessions
          WHERE sessionCode = ?`
     ).bind(code).first();
 
@@ -86,9 +114,9 @@ export async function fetchSessionState(code, env) {
 
     // Fetch teams for this session
     const teamsResult = await env.DB.prepare(
-        `SELECT teamId, teamName, animalId, progress, score, hintsUsed, 
-                timePenaltySeconds, finished, lastSeen
-         FROM teams 
+        `SELECT teamId, teamName, animalId, progress, score, hintsUsed,
+                timePenaltySeconds, finished, lastSeen, currentStation, stationsDoneJson
+         FROM teams
          WHERE sessionCode = ?
          ORDER BY animalId ASC`
     ).bind(code).all();
@@ -102,7 +130,9 @@ export async function fetchSessionState(code, env) {
         hintsUsed: team.hintsUsed || 0,
         timePenaltySeconds: team.timePenaltySeconds || 0,
         finished: team.finished === 1,
-        lastSeen: team.lastSeen ? new Date(team.lastSeen * 1000).toISOString() : null
+        lastSeen: team.lastSeen ? new Date(team.lastSeen * 1000).toISOString() : null,
+        currentStation: team.currentStation || '',
+        stationsDone: parseJson(team.stationsDoneJson, [])
     }));
 
     // Parse words
@@ -119,6 +149,8 @@ export async function fetchSessionState(code, env) {
         sessionName: session.sessionName,
         startTime: session.startTime,
         words,
+        mode: session.mode || MODES.REGULIER,
+        config: parseJson(session.configJson, {}),
         teams,
         now: new Date().toISOString()
     }, 200, env);
@@ -379,6 +411,169 @@ export async function adminUpdateWords(code, body, env) {
     }
 
     return jsonResponse({ ok: true }, 200, env);
+}
+
+/**
+ * Loads a team plus the BiebMissie config of its session
+ * @returns {Promise<{ team: Object, config: Object }|{ error: Response }>}
+ */
+async function loadBiebMissieTeam(teamId, env) {
+    const team = await env.DB.prepare(
+        `SELECT teamId, teamToken, sessionCode, currentStation, stationsDoneJson FROM teams WHERE teamId = ?`
+    ).bind(teamId).first();
+
+    if (!team) {
+        return { error: jsonResponse({ error: 'Team not found' }, 404, env) };
+    }
+
+    const session = await env.DB.prepare(
+        `SELECT mode, configJson FROM sessions WHERE sessionCode = ?`
+    ).bind(team.sessionCode).first();
+
+    if (!session || session.mode !== MODES.BIEBMISSIE) {
+        return { error: jsonResponse({ error: 'Session is not a BiebMissie session' }, 400, env) };
+    }
+
+    return { team, config: parseJson(session.configJson, { stations: [] }) };
+}
+
+/**
+ * POST /api/claimStation
+ * BiebMissie "verkeersleider": rondt optioneel een station af en wijst het volgende vrije boek toe.
+ * Idempotent: een team dat al bij een station zit krijgt dat station terug.
+ *
+ * @param {Object} body - { secret, teamId, teamToken, completedStation?, bonus? }
+ * @param {Object} env - Environment with DB binding
+ * @returns {Response} - { station, stationsDone, requiredStations, bonus, wait, finishedRequired }
+ */
+export async function claimStation(body, env) {
+    const { teamId, teamToken, completedStation, bonus = false } = body;
+
+    if (!teamId || !teamToken) {
+        return jsonResponse({ error: 'Missing teamId or teamToken' }, 400, env);
+    }
+
+    const loaded = await loadBiebMissieTeam(teamId, env);
+    if (loaded.error) return loaded.error;
+    const { team, config } = loaded;
+
+    if (team.teamToken !== teamToken) {
+        return jsonResponse({ error: 'Invalid team token' }, 401, env);
+    }
+
+    const stations = config.stations || [];
+    const required = config.requiredStations || stations.length;
+    const done = parseJson(team.stationsDoneJson, []);
+    let current = team.currentStation || '';
+
+    if (completedStation && stations.some(s => s.id === completedStation) && !done.includes(completedStation)) {
+        done.push(completedStation);
+    }
+    if (completedStation && current === completedStation) {
+        current = '';
+    }
+
+    const requiredReached = done.length >= required;
+    const now = Math.floor(Date.now() / 1000);
+    const result = extra => jsonResponse({
+        station: null,
+        stationsDone: done,
+        requiredStations: required,
+        bonus: false,
+        wait: false,
+        finishedRequired: requiredReached,
+        ...extra
+    }, 200, env);
+
+    // Already at a station: hand it back (resume after refresh)
+    if (current) {
+        return result({ station: current, bonus: requiredReached });
+    }
+
+    // Done with the required stations and no bonus requested: park the team
+    if (requiredReached && !bonus) {
+        await env.DB.prepare(
+            `UPDATE teams SET currentStation = '', stationsDoneJson = ?, finished = 1, lastSeen = ? WHERE teamId = ?`
+        ).bind(JSON.stringify(done), now, teamId).run();
+        return result({});
+    }
+
+    const teamsResult = await env.DB.prepare(
+        `SELECT teamId, currentStation, stationsDoneJson FROM teams WHERE sessionCode = ?`
+    ).bind(team.sessionCode).all();
+
+    const teams = teamsResult.results.map(t => ({
+        teamId: t.teamId,
+        currentStation: t.currentStation || '',
+        stationsDone: parseJson(t.stationsDoneJson, [])
+    }));
+
+    const { candidates, remaining } = rankStations({ stations, teams, teamId, stationsDone: done });
+
+    // Claim atomically: the capacity check and the update are one statement,
+    // so two teams can't grab the last copy of a book at the same time.
+    for (const stationId of candidates) {
+        const capacity = stations.find(s => s.id === stationId).capacity;
+        const claim = await env.DB.prepare(
+            `UPDATE teams SET currentStation = ?, stationsDoneJson = ?, finished = ?, lastSeen = ?
+             WHERE teamId = ?
+               AND (SELECT COUNT(*) FROM teams WHERE sessionCode = ? AND currentStation = ? AND teamId <> ?) < ?`
+        ).bind(
+            stationId, JSON.stringify(done), requiredReached ? 1 : 0, now,
+            teamId,
+            team.sessionCode, stationId, teamId, capacity
+        ).run();
+
+        if (claim.meta && claim.meta.changes === 1) {
+            return result({ station: stationId, bonus: requiredReached });
+        }
+    }
+
+    // Nothing free right now (or nothing left at all)
+    await env.DB.prepare(
+        `UPDATE teams SET currentStation = '', stationsDoneJson = ?, finished = ?, lastSeen = ? WHERE teamId = ?`
+    ).bind(JSON.stringify(done), requiredReached ? 1 : 0, now, teamId).run();
+
+    return result({
+        wait: remaining.length > 0,
+        finishedRequired: requiredReached || remaining.length === 0
+    });
+}
+
+/**
+ * POST /api/adminSkipStation
+ * Noodrem: sluit het huidige station van een team af, zodat de iPad het volgende boek ophaalt.
+ *
+ * @param {Object} body - { secret, sessionCode, teamId }
+ * @param {Object} env - Environment with DB binding
+ * @returns {Response} - { ok: true, stationsDone }
+ */
+export async function adminSkipStation(body, env) {
+    const { sessionCode, teamId } = body;
+
+    if (!sessionCode || !teamId) {
+        return jsonResponse({ error: 'Missing sessionCode or teamId' }, 400, env);
+    }
+
+    const loaded = await loadBiebMissieTeam(teamId, env);
+    if (loaded.error) return loaded.error;
+    const { team, config } = loaded;
+
+    if (team.sessionCode !== sessionCode) {
+        return jsonResponse({ error: 'Team not found' }, 404, env);
+    }
+
+    const done = parseJson(team.stationsDoneJson, []);
+    if (team.currentStation && !done.includes(team.currentStation)) {
+        done.push(team.currentStation);
+    }
+    const required = config.requiredStations || (config.stations || []).length;
+
+    await env.DB.prepare(
+        `UPDATE teams SET currentStation = '', stationsDoneJson = ?, finished = ? WHERE teamId = ?`
+    ).bind(JSON.stringify(done), done.length >= required ? 1 : 0, teamId).run();
+
+    return jsonResponse({ ok: true, stationsDone: done }, 200, env);
 }
 
 /**

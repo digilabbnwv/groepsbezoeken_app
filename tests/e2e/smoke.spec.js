@@ -124,6 +124,43 @@ test.describe('Admin Setup Flow', () => {
     });
 });
 
+test.describe('BiebMissie Mode', () => {
+    test('admin can switch to BiebMissie and the theme follows', async ({ page }) => {
+        await page.goto('/#admin');
+
+        const regular = page.locator('.mode-card[data-mode="regulier"]');
+        const biebmissie = page.locator('.mode-card[data-mode="biebmissie"]');
+        await expect(regular).toHaveClass(/selected/);
+
+        await biebmissie.click();
+        await expect(biebmissie).toHaveClass(/selected/);
+        await expect(page.locator('body')).toHaveClass(/theme-biebmissie/);
+
+        await regular.click();
+        await expect(page.locator('body')).not.toHaveClass(/theme-biebmissie/);
+    });
+
+    test('mock session: team gets a book from the verkeersleider', async ({ page }) => {
+        await page.goto('/?mock=1#admin');
+        await page.locator('.mode-card[data-mode="biebmissie"]').click();
+        await page.fill('#session-name', 'Groep 6A');
+        await page.fill('#session-pin', '7300');
+        await page.click('#btn-create');
+        await expect(page.locator('#code-form .bm-code-row')).toHaveCount(5);
+
+        await page.goto('/?mock=1#player');
+        await page.fill('#session-code', 'ABC1234');
+        await page.click('#btn-join');
+        await page.locator('.animal-card[data-id="1"]').click();
+        await page.click('#btn-confirm');
+
+        // Eerste team gaat naar De YouTube Hack (voorrangsstation)
+        await expect(page.locator('.bm-book-title')).toHaveText('De YouTube Hack');
+        await page.click('#btn-have-book');
+        await expect(page.locator('#open-answer')).toBeVisible();
+    });
+});
+
 test.describe('Dyslexia Mode', () => {
     test('should toggle dyslexia mode', async ({ page }) => {
         await page.goto('/');

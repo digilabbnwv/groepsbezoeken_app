@@ -2,6 +2,7 @@
 import { ANIMALS } from './animals.js';
 import { formatTime } from './utils.js';
 import { getAnimalIcon, SOLUTION_WORDS } from './constants.js';
+import { MODES } from './stations.js';
 
 export const Views = {
     // SOLUTION_WORDS is now imported from constants.js
@@ -118,13 +119,14 @@ export const Views = {
         return div;
     },
 
-    playerGame(question, progressText, attempts, maxAttempts, onAnswer, timePenalty, teamData, animationClass) {
+    playerGame(question, progressText, attempts, maxAttempts, onAnswer, timePenalty, teamData, animationClass, station = null) {
         const div = document.createElement('div');
         div.className = 'player-layout';
 
         const isMcq = question.type === 'mcq';
         const isMatch = question.type === 'match';
         const isOrder = question.type === 'order';
+        const isOpen = question.type === 'open';
 
         let contentHtml = '';
 
@@ -158,14 +160,26 @@ export const Views = {
                     <button id="btn-submit-order" class="btn btn-primary">Check</button>
                 </div>
             `;
+        } else if (isOpen) {
+            contentHtml = `
+                <input type="text" id="open-answer" class="modern-input" placeholder="Typ hier jullie antwoord" autocomplete="off" autocapitalize="off" spellcheck="false">
+                <div style="text-align: center;">
+                    <button id="btn-submit-open" class="btn btn-primary" disabled>Check</button>
+                </div>
+            `;
         }
+
+        // BiebMissie: boek en vindplaats boven de vraag
+        const stationHtml = station ? `
+            <div class="station-chip">📖 <strong>${station.title}</strong>${question.location ? ` · ${question.location}` : ''}</div>
+        ` : '';
 
         // Header Info
         let headerHtml = '';
         if (teamData) {
-            const currentQ = parseInt(progressText.split('/')[0]) - 1;
-            const pct = Math.min(100, Math.round((currentQ / 12) * 100));
             const [cur, total] = progressText.split('/');
+            const currentQ = parseInt(cur) - 1;
+            const pct = Math.min(100, Math.round((currentQ / (parseInt(total) || 12)) * 100));
 
             // Find icon and proper name
             let icon = '🐾';
@@ -186,7 +200,7 @@ export const Views = {
                         <div style="font-weight: bold; font-family: var(--font-heading);">${DisplayName}</div>
                     </div>
                      <div style="flex: 1; max-width: 300px; margin: 0 20px; display: flex; flex-direction: column; align-items: center;">
-                        <div style="font-size: 0.8rem; margin-bottom: 4px; color: #666;">${cur} van ${total}</div>
+                        <div style="font-size: 0.8rem; margin-bottom: 4px; color: #666;">${station ? 'Vraag ' : ''}${cur} van ${total}</div>
                         <div style="height: 8px; width: 100%; background: #E5E7EB; border-radius: 4px; overflow: hidden;">
                             <div style="height: 100%; width: ${pct}%; background: var(--primary); transition: width 0.5s;"></div>
                         </div>
@@ -203,6 +217,7 @@ export const Views = {
                 <div class="question-area">
                     <div class="question-container">
                         <div class="card animate__animated ${animationClass || ''}" style="max-width: 100%;">
+                            ${stationHtml}
                             <h2 style="margin-bottom: 20px;">${question.prompt}</h2>
                             ${contentHtml}
                             
@@ -258,6 +273,28 @@ export const Views = {
     },
 
     // ADMIN VIEWS
+    adminResume(sessionName, sessionCode, onYes, onNo) {
+        const div = document.createElement('div');
+        div.className = 'screen';
+        div.innerHTML = `
+            <img src="assets/Logo-Bibliotheek-Noordwest-Veluwe-vierkant.png" class="bg-logo">
+            <div class="card">
+                <h1>Sessie hervatten?</h1>
+                <p>Wil je verder met <strong></strong> (code <strong></strong>)?</p>
+                <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
+                    <button id="btn-yes" class="btn btn-primary">Ja, verder</button>
+                    <button id="btn-no" class="btn btn-secondary">Nee, nieuwe sessie</button>
+                </div>
+            </div>
+        `;
+        const strongs = div.querySelectorAll('p strong');
+        strongs[0].textContent = sessionName;
+        strongs[1].textContent = sessionCode;
+        div.querySelector('#btn-yes').onclick = onYes;
+        div.querySelector('#btn-no').onclick = onNo;
+        return div;
+    },
+
     adminSetup(onCreate) {
         const div = document.createElement('div');
         div.className = 'screen';
@@ -265,6 +302,18 @@ export const Views = {
             <img src="assets/Logo-Bibliotheek-Noordwest-Veluwe-vierkant.png" class="bg-logo">
             <div class="card" style="z-index: 1;">
                 <h1>Groepsbezoek Bibliotheek</h1>
+                <div class="mode-choice" role="radiogroup" aria-label="Soort groepsbezoek">
+                    <button type="button" class="mode-card selected" data-mode="${MODES.REGULIER}" role="radio" aria-checked="true">
+                        <span class="mode-icon">🗺️</span>
+                        <strong>Regulier groepsbezoek</strong>
+                        <small>BiebBattle: speurtocht door de bieb</small>
+                    </button>
+                    <button type="button" class="mode-card" data-mode="${MODES.BIEBMISSIE}" role="radio" aria-checked="false">
+                        <span class="mode-icon">🕵️</span>
+                        <strong>BiebMissie</strong>
+                        <small>MediaMasters: boekstations en samen de code kraken</small>
+                    </button>
+                </div>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <input type="text" id="session-name" class="modern-input" placeholder="Naam (bv. Groep 6B)" style="flex: 2;">
                     <input type="password" id="session-pin" class="modern-input" placeholder="Vestigingscode" maxlength="4" inputmode="numeric" style="flex: 1; text-align: center;">
@@ -272,6 +321,19 @@ export const Views = {
                 <button id="btn-create" class="btn btn-primary btn-large">Start met deze groep</button>
             </div>
         `;
+
+        let mode = MODES.REGULIER;
+        const modeCards = div.querySelectorAll('.mode-card');
+        modeCards.forEach(card => {
+            card.onclick = () => {
+                mode = card.dataset.mode;
+                modeCards.forEach(c => {
+                    c.classList.toggle('selected', c === card);
+                    c.setAttribute('aria-checked', c === card ? 'true' : 'false');
+                });
+                document.body.classList.toggle('theme-biebmissie', mode === MODES.BIEBMISSIE);
+            };
+        });
 
         const pinInput = div.querySelector('#session-pin');
         // Enforce numbers only
@@ -290,7 +352,7 @@ export const Views = {
                 alert("Ongeldige PIN code. Gebruik vestigingscode.");
                 return;
             }
-            onCreate(name);
+            onCreate(name, mode);
         };
         return div;
     },

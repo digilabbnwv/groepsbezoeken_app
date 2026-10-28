@@ -21,6 +21,9 @@ function getSecretsFromURL() {
 // Cache secrets once at load time
 const urlSecrets = getSecretsFromURL();
 
+// ?mock=1 draait de app zonder backend (gedeelde localStorage-database, handig voor demo en lokaal testen)
+const MOCK_MODE = new URLSearchParams(window.location.search).has('mock');
+
 export const CONFIG = {
     BASE_URL,
 
@@ -32,13 +35,17 @@ export const CONFIG = {
     // Used for adminUpdateWords and purgeSession endpoints
     ADMIN_SECRET: urlSecrets.adminSecret,
 
-    ENDPOINTS: {
+    MOCK_MODE,
+
+    ENDPOINTS: MOCK_MODE ? {} : {
         createSession: `${BASE_URL}/api/createSession`,
         fetchSessionState: `${BASE_URL}/api/fetchSessionState`,
         joinTeam: `${BASE_URL}/api/joinTeam`,
         updateTeam: `${BASE_URL}/api/updateTeam`,
         adminUpdateWords: `${BASE_URL}/api/adminUpdateWords`,
-        purgeSession: `${BASE_URL}/api/purgeSession`
+        purgeSession: `${BASE_URL}/api/purgeSession`,
+        claimStation: `${BASE_URL}/api/claimStation`,
+        adminSkipStation: `${BASE_URL}/api/adminSkipStation`
     },
 
     POLLING_INTERVAL: 5000,
@@ -49,7 +56,7 @@ export const CONFIG = {
 };
 
 // Validate secrets on load
-if (!CONFIG.SECRET) {
+if (!CONFIG.SECRET && !MOCK_MODE) {
     console.warn(
         'No secret found in URL. Add ?secret=YOUR_SECRET to the URL.\n' +
         'For admin access, also add &adminSecret=YOUR_ADMIN_SECRET'
